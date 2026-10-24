@@ -4,19 +4,17 @@ Official morning paper for the NBFC jobs. This design is final.
 
 ## Open it
 
-Double-click:
+Live site: https://nbfc-guru.vercel.app
 
-`C:\Users\gopal\NBFC Briefing\reader.html`
-
-Or open that file in Hermes preview.
+Local preview: run `python3 -m http.server` in this folder and open http://localhost:8000.
 
 ## How to read it
 
-- **News** — Daily Watch (jarvis, 7:00 AM)
-- **Rules** — Regulatory Monitor (NBFC Guru, 8:15 AM)
-- **Weekly** — Weekly Analysis (jarvis, Mondays 7:15 AM)
+- **News** — Daily Watch (NBFC Guru, 7:00 AM IST)
+- **Rules** — Regulatory Monitor (NBFC Guru, 7:00 AM IST)
+- **Weekly** — Weekly Analysis (NBFC Guru, Mondays 7:15 AM IST)
 
-Pick a date in the top bar. Tap a desk that says *Ready to read*. The article is on the page.
+Pick a date in the top bar. Tap a desk that says *Ready*. The article is on the page.
 
 ## What files where
 

@@ -13,7 +13,7 @@ JOBS = {
     "01-daily-watch": {
         "section": "News",
         "kind": "Daily Watch",
-        "agent": "jarvis",
+        "agent": "NBFC Guru",
         "when": "7:00 AM",
         "question": "What happened in markets and the sector?",
         "monday_only": False,
@@ -22,14 +22,14 @@ JOBS = {
         "section": "Rules",
         "kind": "Regulation",
         "agent": "NBFC Guru",
-        "when": "8:15 AM",
+        "when": "7:00 AM",
         "question": "What changed in the rulebook?",
         "monday_only": False,
     },
     "03-weekly-analysis": {
         "section": "Weekly",
         "kind": "Weekly Analysis",
-        "agent": "jarvis",
+        "agent": "NBFC Guru",
         "when": "7:15 AM Mondays",
         "question": "What did the whole week mean?",
         "monday_only": True,
@@ -58,19 +58,74 @@ def first_heading(text: str, fallback: str) -> str:
     return fallback
 
 
+URL_RE = re.compile(r"https?://[^\s<>()\[\]]+")
+META_RE = re.compile(
+    r"^(\*\*)?(date|prepared for|published|covering)\b|\bedition\b\s*·",
+    re.IGNORECASE,
+)
+
+
+def clip(value: str, limit: int = 220) -> str:
+    """Shorten at a sentence or word boundary, never mid-word."""
+    if len(value) <= limit:
+        return value
+    cut = value[:limit]
+    stop = max(cut.rfind(". "), cut.rfind("? "), cut.rfind("! "))
+    if stop >= limit * 0.6:
+        return cut[: stop + 1]
+    space = cut.rfind(" ")
+    return (cut[:space] if space > 0 else cut).rstrip(" ,;:—-") + "…"
+
+
+def is_meta_block(block: str) -> bool:
+    """The edition blurb / date line at the top of a report is not a summary."""
+    first = block.strip().splitlines()[0].strip()
+    italic = (first.startswith("*") and first.endswith("*") and not first.startswith("**")) or (
+        first.startswith("_") and first.endswith("_")
+    )
+    return italic or bool(META_RE.search(first))
+
+
+def strip_bullet(line: str) -> str:
+    return re.sub(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", line)
+
+
 def excerpt(text: str) -> str:
+    parts: list[str] = []
     for block in re.split(r"\n\s*\n", text):
         block = block.strip()
-        if not block or block.startswith("#") or block.startswith("---"):
+        if not block or block.startswith(("#", "---", "|")) or is_meta_block(block):
             continue
-        lines = [
-            line
-            for line in block.splitlines()
-            if not line.lstrip().startswith(("|", "- ", "* "))
-        ]
-        if lines:
-            return clean_inline(" ".join(lines))[:220]
-    return ""
+        lines = [l for l in block.splitlines() if not l.lstrip().startswith(("|", "- ", "* "))]
+        if not lines:
+            continue
+        piece = clean_inline(" ".join(strip_bullet(l) for l in lines))
+        piece = re.sub(r"^\d+[.)]\s+", "", piece)
+        piece = re.sub(r"^[^\w₹(\"']+", "", piece).strip()
+        if piece:
+            parts.append(piece)
+        if len(" ".join(parts)) >= 80:
+            break
+    return clip(" ".join(parts), 220)
+
+
+def count_sources(text: str) -> int:
+    return len({u.rstrip(".,;:*_") for u in URL_RE.findall(text)})
+
+
+def count_words(text: str) -> int:
+    return len(clean_inline(text).split())
+
+
+def section_titles(text: str) -> list[str]:
+    out = []
+    for line in text.splitlines():
+        m = re.match(r"^##\s+(.+?)\s*$", line)
+        if m:
+            t = re.sub(r"^[^\w]+", "", clean_inline(m.group(1)))
+            if t:
+                out.append(t)
+    return out
 
 
 def read_report(path: Path, key: str, folder: str) -> dict:
@@ -91,6 +146,10 @@ def read_report(path: Path, key: str, folder: str) -> dict:
         "missing": False,
         "expected": True,
         "file": path.name,
+        # additive fields (older readers ignore them)
+        "sources": count_sources(text),
+        "words": count_words(text),
+        "sections": section_titles(text),
     }
 
 
@@ -117,6 +176,9 @@ def empty_report(key: str, folder: str, expected: bool) -> dict:
         "missing": True,
         "expected": expected,
         "file": f"{key}.md",
+        "sources": 0,
+        "words": 0,
+        "sections": [],
     }
 
 
@@ -146,6 +208,9 @@ def build() -> dict:
                 "weekday": day.strftime("%A"),
                 "is_monday": is_monday,
                 "reports": reports,
+                "due": sum(1 for r in reports if r["expected"]),
+                "filed": sum(1 for r in reports if not r["missing"]),
+                "podcast": (day_dir / "podcast-script.txt").exists(),
             }
         )
     return {"generated": datetime.now().isoformat(timespec="seconds"), "days": days}
