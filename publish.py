@@ -5,6 +5,8 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 
+import keynumbers
+
 ROOT = Path(__file__).resolve().parent
 DAYS = ROOT / "days"
 OUT = ROOT / "data.js"
@@ -113,6 +115,15 @@ def count_sources(text: str) -> int:
     return len({u.rstrip(".,;:*_") for u in URL_RE.findall(text)})
 
 
+def without_key_numbers(text: str) -> str:
+    """The Key numbers tables are data, not prose: keep them out of read time."""
+    sec = keynumbers.key_numbers_section(text)
+    if not sec:
+        return text
+    lines = text.splitlines()
+    return "\n".join(lines[:sec[1]] + lines[sec[2]:])
+
+
 def count_words(text: str) -> int:
     return len(clean_inline(text).split())
 
@@ -148,7 +159,7 @@ def read_report(path: Path, key: str, folder: str) -> dict:
         "file": path.name,
         # additive fields (older readers ignore them)
         "sources": count_sources(text),
-        "words": count_words(text),
+        "words": count_words(without_key_numbers(text)),
         "sections": section_titles(text),
     }
 
@@ -182,6 +193,18 @@ def empty_report(key: str, folder: str, expected: bool) -> dict:
     }
 
 
+def day_key_numbers(day_dir: Path, day: date) -> dict:
+    """Market figures + MFL watchlist from that day's news report only (never carried forward)."""
+    path = day_dir / "01-daily-watch.md"
+    if not path.exists():
+        return {"origin": None, "items": [], "watchlist": [], "core_total": len(keynumbers.CORE),
+                "core_found": 0, "report_id": None}
+    warn = lambda msg: print(f"  warning {day_dir.name}: {msg}")
+    kn = keynumbers.extract(path.read_text(encoding="utf-8"), day, warn)
+    kn["report_id"] = f"{day_dir.name}-01-daily-watch"
+    return kn
+
+
 def build() -> dict:
     days = []
     DAYS.mkdir(parents=True, exist_ok=True)
@@ -211,6 +234,7 @@ def build() -> dict:
                 "due": sum(1 for r in reports if r["expected"]),
                 "filed": sum(1 for r in reports if not r["missing"]),
                 "podcast": (day_dir / "podcast-script.txt").exists(),
+                "key_numbers": day_key_numbers(day_dir, day),
             }
         )
     return {"generated": datetime.now().isoformat(timespec="seconds"), "days": days}

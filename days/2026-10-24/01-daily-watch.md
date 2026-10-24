@@ -81,6 +81,36 @@
 - **Renewables credit is still growing fast.** IREDA's disbursements were +31% and its loan book +15%, with NNPA falling to 1.08%. ([Construction World](https://www.constructionworld.in/energy-infrastructure/power-and-renewable-energy/ireda-net-profit-rises-to-rs.-5.54-bn-in-q2-fy27/99244))
 - **Read for MFL:** none of this competes with MFL's book. The indirect link is **bond-market supply**. PFC, REC and IREDA issue AAA paper in size. With repo at 5.50% and Brent at $114, heavy PSU-NBFC issuance keeps the AA spread that MFL pays on its retail NCDs from compressing.
 
+## 🔢 Key numbers
+
+| Item | Value | Change | As of | Basis | Source |
+|---|---|---|---|---|---|
+| Sensex | 73,123.83 | −125.56 (−0.17%) | 2026-10-23 | close | [BusinessLine](https://www.thehindubusinessline.com/markets/sensex-nifty50-today-stock-market-highlights-23rd-october-2026/article71611889.ece) |
+| Nifty 50 | 22,600 | −87.65 (−0.39%) | 2026-10-23 | close | [BusinessLine](https://www.thehindubusinessline.com/markets/sensex-nifty50-today-stock-market-highlights-23rd-october-2026/article71611889.ece) |
+| Nifty Financial Services | 24,403.00 | −1.03% | 2026-10-23 | close | [TrackLivePrice](https://trackliveprice.com/nifty-financial-services/) |
+| Manappuram Finance (peer) | ₹286.10 | −5.23% | 2026-10-23 | NSE close | [exa.ai MANAPPURAM](https://exa.ai/library/markets/stock/MANAPPURAM?exchange=XNSE&date=2026-10-23&view=daily) |
+| Muthoot Finance (peer) | ₹2,373.00 | −1.74% | 2026-10-23 | NSE close | [exa.ai MUTHOOTFIN](https://exa.ai/library/markets/stock/MUTHOOTFIN?exchange=XNSE&date=2026-10-23&view=daily) |
+| IIFL Finance (peer) | — | — | — | not in today's report | — |
+| Shriram Finance (peer) | ~₹865 | ~−4% | — | approx. ("settled about 4% lower"); session date not stated | [Mint](https://www.livemint.com/news/gold-loan-stress-nbfc-piramal-bajaj-finance-precious-metal-11792580129138.html) |
+| Bajaj Finance (peer) | — | — | — | not in today's report | — |
+| USD/INR | 94.93 | −12 paise | 2026-10-23 | close | [Moneycontrol live, 23 Oct](https://www.moneycontrol.com/news/business/markets/stock-market-live-updates-nifty50-share-price-sensex-share-price-crude-fii-gift-nifty-rupee-latest-updates-23-10-2026-alpha-liveblog-14058065.html) |
+| Gold (₹/10g) | ~₹1,42,150 | — | 2026-10-24 | MCX Dec futures, morning | [ET MCX gold](https://economictimes.indiatimes.com/commoditysummary/symbol-GOLD.cms) |
+| Brent ($/bbl) | ~$114 | — | 2026-10-23 | approx., per 23 Oct live blog | [Moneycontrol live, 23 Oct](https://www.moneycontrol.com/news/business/markets/stock-market-live-updates-nifty50-share-price-sensex-share-price-crude-fii-gift-nifty-rupee-latest-updates-23-10-2026-alpha-liveblog-14058065.html) |
+| Gold spot ($/oz) | ~$3,996 | — | 2026-10-24 | morning | [Gold spot](https://exa.ai/library/markets/commodity/gold?currency=USD) |
+| FII net (₹ cr) | +887.65 | — | 2026-10-23 | provisional | [Moneycontrol](https://www.moneycontrol.com/news/business/markets/fiis-net-buy-rs-888-crore-of-indian-equities-while-diis-net-buy-rs-3459-crore-14058825.html) |
+| DII net (₹ cr) | +3,235.36 | — | 2026-10-23 | provisional | [Moneycontrol](https://www.moneycontrol.com/news/business/markets/fiis-net-buy-rs-888-crore-of-indian-equities-while-diis-net-buy-rs-3459-crore-14058825.html) |
+
+### MFL watchlist
+
+| Item | Value | As of | Source |
+|---|---|---|---|
+| NCD Tranche I status | Open, 23 Oct – 5 Nov 2026 | 2026-10-24 | [Chittorgarh](https://www.chittorgarh.com/bond/muthoot-fincorp-tranche-i-ncd-october-2026/399/) |
+| NCD Tranche I size | ₹200 cr base + ₹300 cr green shoe = ₹500 cr (₹4,000 cr shelf) | 2026-10-24 | [FintechBizNews](https://www.fintechbiznews.com/exchanges-ipos-nfos/muthoot-fincorp-rolls-out-ncd-tranche-i-aims-to-raise-rs5-bn) |
+| NCD Tranche I coupons | 8.56%–9.25% (effective yield 8.89–9.25%) | 2026-10-24 | [Nuvama prospectus](https://www.nuvama.com/wp-content/uploads/2026/10/Muthoot-FinCorp-Limited-Tranche-I-Prospectus-dated-October-19-2026.pdf) |
+| NCD Tranche I subscription | 0.55× at end of day 1 | 2026-10-23 | [Chittorgarh](https://www.chittorgarh.com/bond/muthoot-fincorp-tranche-i-ncd-october-2026/399/) |
+| Ratings | CRISIL AA/Stable · BWR AA+/Stable · CARE AA/Stable | 2026-10-24 | [Chittorgarh](https://www.chittorgarh.com/bond/muthoot-fincorp-tranche-i-ncd-october-2026/399/) |
+| Key date: SEBI Credit Risk-o-Meter live | 21 Nov 2026 | 2026-10-24 | — |
+
 ## 🔗 Source Links
 
 - ET — Shriram Finance Q2: https://economictimes.indiatimes.com/markets/stocks/earnings/shriram-finance-q2-profit-jumps-59-yoy-to-rs-3677-crore-on-strong-interest-income-lower-funding-costs/articleshow/135150195.cms
