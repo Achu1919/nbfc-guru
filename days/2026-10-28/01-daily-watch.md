@@ -1,4 +1,4 @@
-# 📊 NBFC Daily Watch — Tuesday, October 27, 2026
+# 📊 NBFC Daily Watch — Wednesday, October 28, 2026
 
 *Wednesday, Oct 28, 2026 edition · News & Markets desk. Indian prices are Tuesday's (27 Oct) close. Gold spot and MCX gold are this morning's early-Asia prints, and Brent is Tuesday's settlement. Regulatory deep-dives live in NBFC Guru's 7 AM report.*
 
