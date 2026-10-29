@@ -13,7 +13,7 @@ No significant developments today. RBI issued no new notification after the two 
 
 | Item | What it actually is | MFL action |
 |------|---------------------|------------|
-| **RBI press releases, 28 Oct:** Section 35A directions extended for Lokapavani Mahila Sahakari Bank (Mandya) and Sonpeth Nagari Sahakari Bank; T-bill auction results; money-market operations | Co-operative bank supervision and market operations. [RBI press releases](https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx) | None. |
+| **RBI press releases, 28 Oct:** Section 35A directions extended for two co-operative banks; T-bill auction results; money-market operations | Co-operative bank supervision and market operations. [RBI press releases](https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx) | None. |
 | **SEBI PR 66/2026 (28 Oct):** MoU with the Bank of England on SEBI-recognised clearing corporations | Regulator-to-regulator cooperation. [SEBI press releases](https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=6&ssid=23&smid=0) | None. |
 | **SEBI consultation papers** | Latest is **22 Oct** (MII investments in related activities). None touch NCD issuers. [SEBI consultation papers](https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=4&ssid=38&smid=35) | None. |
 | **Fed hold at 3.75–4.00% (10–2 vote, two members for a hike)** | US monetary policy. Not Indian regulation. [Business Times](https://www.businesstimes.com.sg/companies-markets/energy-commodities/gold-cuts-losses-fed-pauses-and-stays-silent-future-hikes) | None directly. It weakens the case for an early RBI cut. |
@@ -70,7 +70,7 @@ All references are to the 2026 Directions ([RBI](https://www.rbi.org.in/Scripts/
 
 - **Who is covered (para 3).** Deposit-taking NBFCs with 10+ branches, and **non-deposit-taking NBFCs with assets of ₹5,000 cr or more and a public customer interface**, measured as of 31 Mar 2025. HFCs, CICs, IDF-NBFCs, NBFC-IFCs, NOFHCs, primary dealers and mortgage guarantee companies are excluded. An NBFC that crosses the line later must comply six months after it does.
 - **Who can be IO (para 5).** A retired or serving officer of **General Manager rank or equivalent** from another regulated entity or a financial-sector regulator, with at least **seven years** in relevant fields. The IO must never have worked for the NBFC or its holding, associate or subsidiary companies, and cannot be over **70** before the term ends. A Deputy IO needs DGM rank and five years of experience (para 6).
-- **Tenure (para 8).** Contractual, fixed at **at least three years and at most five** including extensions. The IO cannot be removed early without board approval. If the post falls vacant unexpectedly, RBI must be told within **10 working days** and a replacement appointed within **three months**. Pay cannot be changed to the IO's disadvantage during the term.
+- **Tenure (para 8).** Contractual, fixed at **at least three years and at most five** including extensions. The IO cannot be removed before the contracted term ends without board approval. If the post falls vacant unexpectedly, RBI must be told within **10 working days** and a replacement appointed within **three months**. Pay cannot be changed to the IO's disadvantage during the term.
 - **Reporting lines (para 9, 13).** The IO reports administratively to the MD/CEO/ED and **functionally to the board**. The IO is a permanent invitee to board meetings and reports at least half-yearly, preferably quarterly.
 - **Auto-escalation (para 14(1)).** The complaints system must be **fully automated**. Every complaint marked "Partially Resolved" or "Wholly Rejected" goes to the IO automatically:
   - if an RBI, NPCI or card-network timeline applies, early enough to give the IO **at least 10 days**;
@@ -79,7 +79,7 @@ All references are to the 2026 Directions ([RBI](https://www.rbi.org.in/Scripts/
 - **No same-desk closure (para 14(4)).** A complaint cannot be closed by the same branch or unit it came from, and rejections are reviewed at a senior level before they reach the IO.
 - **30-day finish (para 14(9)).** The customer gets the final decision within **30 days** of the NBFC receiving the complaint, IO review included.
 - **Overruling the IO (para 13(3)–(4)).** Only the MD/CEO/ED can overrule the IO, and every overrule goes to the board.
-- **What the IO doesn't handle (para 14(5)).** Staff and HR matters, cases already in court or a consumer forum, CIC disputes under s18 of the CICRA, and pure commercial decisions. A *service deficiency* inside a commercial decision still counts as a complaint.
+- **What the IO doesn't handle (clause 14).** Internal administration, HR and staff pay, frauds that don't affect the customer, cases already in court, a consumer commission or arbitration, CIC disputes under s18 of the CICRA, and suggestions or pure commercial decisions. A *service deficiency* inside a commercial decision still counts as a complaint.
 - **Reporting (para 16).** Appointment details go to RBI's CEPD within **five working days**. A quarterly return is due by the **15th** of the month after the quarter.
 - **Internal audit (para 11).** Audit checks the implementation every year, including whether auto-escalation met its timelines. It does not judge whether the IO's decisions were right.
 
@@ -89,7 +89,7 @@ In a gold-loan business, the complaints that end in "no" are about the moments t
 ### Key Numbers
 | Rule | Number | Para |
 |---|---|---|
-| Asset threshold (non-deposit NBFC) | ₹5,000 cr, with public interface | 3(1)(ii) |
+| Asset threshold (non-deposit NBFC) | ₹5,000 cr, with public interface | 3 |
 | IO seniority / experience | GM-equivalent / 7 years | 5(1) |
 | IO term | 3 to 5 years | 8(4) |
 | Age cap | 70 at end of term | 5(3) |
@@ -104,10 +104,10 @@ In a gold-loan business, the complaints that end in "no" are about the moments t
   - the board's annual review of how many IOs are needed (7(2));
   - the three-outcome rule in the complaints system (14(2));
   - the ban on same-desk closure (14(4)).
-- **Reading across:** RBI's penalty notes from August included one where an NBFC was fined partly over **Internal Ombudsman auto-escalation** (logged on 22 Aug in this repo). Auto-escalation timing is a point inspectors check.
+- **Reading across:** RBI's 14 Aug penalty on Northern Arc Capital (₹6.20 lakh) was partly over **Internal Ombudsman auto-escalation** (logged in this repo's 22 Aug report). Auto-escalation timing is a point inspectors check.
 
 ### Muthoot Fincorp Context
-- **MFL is in scope.** It is a non-deposit NBFC with a public interface and is far above ₹5,000 cr in size. Its FY26 consolidated net worth alone was ₹8,218 cr ([Chittorgarh](https://www.chittorgarh.com/bond/muthoot-fincorp-tranche-i-ncd-october-2026/399/)). Muthoot Microfin is a separate NBFC, so it is assessed on its own numbers. MFL's IO cannot have worked for Muthoot Microfin or any other company in MFL's holding, associate or subsidiary chain (para 5(2)).
+- **MFL is in scope.** It is a non-deposit NBFC with a public interface and is far above ₹5,000 cr in size. Its FY26 total assets were ₹67,669 cr (audited figures from the NCD prospectus, cited in this repo on 8 Sep). Muthoot Microfin is a separate NBFC, so it is assessed on its own numbers. MFL's IO cannot have worked for Muthoot Microfin or any other company in MFL's holding, associate or subsidiary chain (para 5(2)).
 - **The FP&A angle:**
   - **Compensation is a cost line.** The IO can recommend compensation, including Integrated Ombudsman-style amounts for harassment and lost time (para 12(4)–(5)). Track it as its own line, not buried in other operating expenses.
   - **Complaint mix is a lead indicator.** The IO's quarterly analysis by product, location and customer group (para 12(6)) can be lined up against branch-level auction volumes and Q3 renewal data. A district with rising auctions *and* rising rejected complaints is the one to watch.
@@ -115,7 +115,7 @@ In a gold-loan business, the complaints that end in "no" are about the moments t
 - **One thing to check this week:** whether the Oct–Dec IO return to CEPD will need a section on auction complaints, given the gold-price fall in October.
 
 ### Quiz yourself
-1. A branch rejects a customer's complaint about auction notice on day 5. When must it reach the IO? *(**Within 20 days of receipt** if no RBI/NPCI/card timeline applies, and the customer still gets a final answer within **30 days** (14(1)(b), 14(9)).)*
+1. A branch rejects a customer's complaint about auction notice on day 5. When must it reach the IO? *(**Within 20 days of receipt** if no RBI/NPCI/card timeline applies, and the customer still gets a final answer within **30 days** (14(1), 14(9)).)*
 2. Can the branch that received the complaint mark it "Fully Resolved" and close it? *(**No.** A complaint can't be closed by the same branch or unit, whatever the outcome (14(4)).)*
 3. MFL wants to appoint a retired GM from Muthoot Microfin as IO. Allowed? *(**No.** The IO must never have been employed by the NBFC or its holding, associate or subsidiary company (5(2)).)*
 4. The CEO overrules the IO on a valuation dispute. What has to happen next? *(The case goes to the **board for review** (13(4)). If the customer then goes to the RBI Ombudsman, CEPD can review the case (15(2)).)*
