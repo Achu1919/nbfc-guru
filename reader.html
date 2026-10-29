@@ -155,6 +155,7 @@ a.kpi:hover{border-color:var(--hair)}
 .seg button{border:0;background:transparent;color:var(--mute);font:600 13px var(--sans);padding:7px 16px;border-radius:99px;white-space:nowrap}
 .seg button[aria-current="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .agrid{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:22px;align-items:start}
+.agrid>*{min-width:0}
 .sheet{padding:34px 40px}
 .sheet .label{color:var(--rule)}
 .sheet h1{font:600 clamp(28px,3.4vw,38px)/1.15 var(--serif);margin:8px 0 10px}
@@ -229,8 +230,8 @@ footer{margin:40px 0 0;padding:20px 0 60px;border-top:1px solid var(--hair);disp
 .bnav{display:none}
 .only-m{display:none}
 @media(max-width:980px){
-  .toprow,.three,.agrid{grid-template-columns:1fr}
-  .archgrid{grid-template-columns:1fr}
+  .toprow,.three,.agrid{grid-template-columns:minmax(0,1fr)}
+  .archgrid{grid-template-columns:minmax(0,1fr)}
   .rail{position:static;max-height:none;overflow:visible}
   .sheet{padding:26px 24px}
 }
@@ -258,8 +259,31 @@ footer{margin:40px 0 0;padding:20px 0 60px;border-top:1px solid var(--hair);disp
     border:1px solid var(--hair);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.35);padding:5px}
   .bnav button{flex:1;background:none;border:0;padding:10px 0;color:var(--mute);font:600 14px var(--sans);border-radius:12px}
   .bnav button[aria-current="true"]{background:var(--brand);color:var(--brand-ink)}
-  footer{padding-bottom:110px}
+  footer{padding-bottom:30px}
   .md h1,.md h2,.md h3{scroll-margin-top:100px}
+  /* mobile reading layout: nothing may widen the page */
+  .logo{display:none}
+  .days{flex:1;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  .day{padding:5px 11px}
+  .theme{width:34px;height:34px}
+  .crumb{margin:14px 0 10px;gap:8px}
+  .sheet{padding:20px 16px}
+  .sheet h1{font-size:25px;overflow-wrap:anywhere}
+  .byline{font-size:13px;margin-bottom:16px;overflow-wrap:anywhere}
+  .otp{padding:12px;margin-bottom:18px}
+  .otp nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -12px;padding:0 12px 2px}
+  .otp nav::-webkit-scrollbar{display:none}
+  .otp a{flex:none;white-space:nowrap;font-size:12.5px;padding:5px 11px}
+  .md{font-size:16px;line-height:1.65;overflow-wrap:anywhere}
+  .md h1{font-size:21px;margin:24px 0 8px}.md h2{font-size:20px;margin:26px 0 10px;padding-top:12px}.md h3{font-size:17px;margin:18px 0 6px}
+  .md ul,.md ol{margin-left:1.1em}
+  .md img,.md video,.md iframe{max-width:100%;height:auto}
+  .md pre{overflow-x:auto;white-space:pre-wrap}
+  .md table{font-size:13px;min-width:460px}
+  .md th,.md td{overflow-wrap:normal}
+  .rail,.card{overflow-wrap:anywhere}
+  .sheet-nav{margin-bottom:24px}
+  .view{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 </style>
 </head>
