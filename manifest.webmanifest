@@ -8,8 +8,8 @@
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait-primary",
-  "background_color": "#F6F7F9",
-  "theme_color": "#F6F7F9",
+  "background_color": "#F3F1EC",
+  "theme_color": "#F3F1EC",
   "lang": "en-IN",
   "categories": ["finance", "news", "business"],
   "icons": [

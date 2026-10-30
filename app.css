@@ -1,10 +1,14 @@
 /* NBFC Guru · v6 "Ink" design system. Tokens are documented in docs/DESIGN_TOKENS.md.
    One neutral scale, one accent (ink blue), semantic colours tuned per theme. Two themes only: light, dark. */
-:root{--glass-tint:rgba(255,255,255,.62);--glass-tint-x:rgba(255,255,255,.6);--glass-spec:rgba(255,255,255,.55);--glass-rim:rgba(255,255,255,.95);--glass-rim2:rgba(255,255,255,.45);--glass-line:rgba(23,25,30,.10);
-  --glass-shadow:0 10px 30px -8px rgba(23,25,30,.18),0 2px 6px rgba(23,25,30,.06);--blob:rgba(23,25,30,.06);--blob-x:rgba(255,255,255,.45);--blob-shadow:0 2px 8px rgba(23,25,30,.10);
+:root{--glass-tint:rgba(251,250,247,.66);--glass-tint-x:rgba(251,250,247,.6);--glass-spec:rgba(255,255,255,.55);--glass-rim:rgba(255,255,255,.95);--glass-rim2:rgba(255,255,255,.45);--glass-line:rgba(40,32,20,.10);
+  --glass-shadow:0 10px 30px -8px rgba(40,32,20,.18),0 2px 6px rgba(40,32,20,.06);--blob:rgba(255,255,255,.72);--blob-x:rgba(255,255,255,.62);--blob-shadow:0 1px 2px rgba(40,32,20,.10),0 4px 14px rgba(40,32,20,.16);
+  /* bottom nav, light: smoky graphite glass so it reads against paper; the active blob stays bright */
+  --nav-tint:rgba(214,210,201,.78);--nav-tint-x:rgba(38,34,28,.13);--nav-ink:var(--n800);--nav-rim:rgba(255,255,255,.7);--nav-line:rgba(40,32,20,.16);
+  --nav-shadow:0 14px 34px -10px rgba(40,32,20,.34),0 3px 10px rgba(40,32,20,.12);
   /* neutrals */
-  --n0:#FFFFFF;--n50:#F6F7F9;--n100:#EEF0F3;--n200:#E1E4E9;--n300:#C9CDD5;--n400:#9EA3AE;--n500:#6B717E;
-  --n600:#535965;--n700:#3C414B;--n800:#272A31;--n850:#1E2026;--n900:#17191E;--n950:#0E0F12;
+  /* light neutrals are warm paper (v8); n850/n950 stay cool for the dark theme */
+  --n0:#FBFAF7;--n50:#F3F1EC;--n100:#ECE9E2;--n200:#E2DED5;--n300:#CDC8BD;--n400:#A29D92;--n500:#6A655C;
+  --n600:#57534B;--n700:#403C36;--n800:#2A2824;--n850:#1E2026;--n900:#1B1A17;--n950:#0E0F12;
   /* accent: ink blue */
   --a50:#EEF2FA;--a100:#DCE4F5;--a200:#B9C8EB;--a300:#8EA6E0;--a400:#6585D2;--a500:#4366BE;
   --a600:#2F4FA3;--a700:#253F84;--a800:#1D3166;--a900:#15244A;
@@ -18,20 +22,21 @@
   color-scheme:light;
   /* light theme */
   --bg:var(--n50);--surface-1:var(--n0);--surface-2:var(--n100);--surface-3:var(--n200);
-  --chrome:rgba(255,255,255,.86);--chrome-solid:#FFFFFF;
+  --chrome:rgba(251,250,247,.86);--chrome-solid:#FBFAF7;
   --text-1:var(--n900);--text-2:var(--n600);--text-3:var(--n500);
-  --border:rgba(23,25,30,.10);--hairline:rgba(23,25,30,.07);--border-strong:rgba(23,25,30,.18);
-  --accent:var(--a600);--accent-soft:rgba(47,79,163,.08);--on-accent:#FFFFFF;--focus:var(--a500);
-  --up:#0E7A4B;--down:#B42330;--warn:#8F5C06;--info:var(--a600);
+  --border:rgba(52,42,24,.13);--hairline:rgba(52,42,24,.09);--border-strong:rgba(52,42,24,.20);
+  --accent:var(--a600);--accent-soft:rgba(47,79,163,.08);--on-accent:#FBFAF7;--focus:var(--a500);
+  --up:#0C7045;--down:#B42330;--warn:#86560A;--info:var(--a600);
   --inv:var(--n900);--on-inv:var(--n50);
-  --elev-1:0 1px 2px rgba(16,18,24,.04);
-  --elev-2:0 1px 2px rgba(16,18,24,.05),0 6px 20px rgba(16,18,24,.06);
-  --elev-3:0 2px 6px rgba(16,18,24,.08),0 18px 40px rgba(16,18,24,.14);
+  --elev-1:0 1px 2px rgba(40,32,20,.05);
+  --elev-2:0 1px 2px rgba(40,32,20,.05),0 6px 20px rgba(40,32,20,.07);
+  --elev-3:0 2px 6px rgba(40,32,20,.08),0 18px 40px rgba(40,32,20,.15);
   --cover:var(--n900);--cover-wk:var(--a700);--cover-ink:#F3F4F6;--cover-ink2:rgba(243,244,246,.68);--cover-line:rgba(255,255,255,.16);--cover-edge:transparent;
   --dot-n:var(--a600);--dot-r:var(--warn);--dot-w:var(--n700);--dot-a:var(--up);
 }
 :root[data-theme=dark]{--glass-tint:rgba(30,32,38,.66);--glass-tint-x:rgba(28,30,36,.5);--glass-spec:rgba(255,255,255,.10);--glass-rim:rgba(255,255,255,.26);--glass-rim2:rgba(255,255,255,.08);--glass-line:rgba(255,255,255,.08);
   --glass-shadow:0 12px 32px -8px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.3);--blob:rgba(255,255,255,.09);--blob-x:rgba(255,255,255,.10);--blob-shadow:0 2px 10px rgba(0,0,0,.35);color-scheme:dark;
+  --nav-tint:var(--glass-tint);--nav-tint-x:var(--glass-tint-x);--nav-ink:var(--text-2);--nav-rim:var(--glass-rim);--nav-line:var(--glass-line);--nav-shadow:var(--glass-shadow);
   --bg:var(--n950);--surface-1:#16181C;--surface-2:#1C1E23;--surface-3:#25282E;
   --chrome:rgba(26,28,33,.86);--chrome-solid:#1A1C21;
   --text-1:#ECEDF0;--text-2:#A8ADB7;--text-3:#878D98;
@@ -62,6 +67,7 @@ h1[tabindex="-1"]:focus{outline:none}
 .num,.tc,.kpis,.tile .v,.flows b,.tv,.tch,.cal-g{font-variant-numeric:tabular-nums}
 [hidden]{display:none!important}
 
+.vw{display:contents}.vw.stg{visibility:hidden;pointer-events:none}
 .wrap{max-width:1180px;margin:0 auto;padding:0 max(var(--gut),env(safe-area-inset-right)) 0 max(var(--gut),env(safe-area-inset-left))}
 /* surfaces: flat cards on a calm background; hairline border, one restrained shadow */
 .g{background:var(--surface-1);border:1px solid var(--hairline);box-shadow:var(--elev-1);border-radius:var(--r-l)}
@@ -351,9 +357,11 @@ html.lgx .lg{background:var(--glass-tint-x)}
 
 /* ---------- bottom nav ---------- */
 .tabbar{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;padding:5px;border-radius:var(--r-pill);z-index:20;
-  width:min(440px,calc(100vw - 24px));height:66px;box-shadow:var(--glass-shadow)}
+  width:min(440px,calc(100vw - 24px));height:66px;box-shadow:var(--nav-shadow)}
+.tabbar>.lg{background:var(--nav-tint)}html.lgx .tabbar>.lg{background:var(--nav-tint-x)}
+.tabbar>.lg::after{box-shadow:inset 0 1px 0 var(--nav-rim),inset 0 -1px 0 var(--glass-rim2),inset 1px 0 0 var(--glass-rim2),inset -1px 0 0 var(--glass-rim2),inset 0 0 0 1px var(--nav-line)}
 .tabbar a{position:relative;z-index:1;flex:1 1 0;min-width:0;border-radius:var(--r-pill);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  font-size:var(--t-13);font-weight:560;letter-spacing:.005em;color:var(--text-2);text-decoration:none;transition:color .2s;-webkit-tap-highlight-color:transparent}
+  font-size:var(--t-13);font-weight:560;letter-spacing:.005em;color:var(--nav-ink);text-decoration:none;transition:color .2s;-webkit-tap-highlight-color:transparent}
 .tabbar a svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .tabbar a span{font-size:14px;line-height:1.1}
 .tabbar a:hover{color:var(--text-1)}

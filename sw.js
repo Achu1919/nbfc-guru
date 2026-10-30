@@ -2,7 +2,7 @@
    Shell: precached, stale-while-revalidate (a new deploy shows on the next open).
    Data (data.js, data/*.json, days/*): network-first; if a saved copy exists and the network takes
    over 3 s (or is down), the saved copy is shown and the app offers "New edition available — Refresh". Fonts: cache-first. */
-const VERSION = 'v9-2026-10-30';
+const VERSION = 'v10-2026-10-31';
 const SHELL = `shell-${VERSION}`;
 const DATA = 'data-v1';
 const FONTS = 'fonts-v1';

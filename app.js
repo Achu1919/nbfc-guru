@@ -126,7 +126,7 @@ function cascade(root,launch){
     var r=el.getBoundingClientRect();if(r.top>vh)return;
     if(sw){var i2=Math.min(rows++,ENTRANCE.MaxRows-1),d2=i2*ENTRANCE.StaggerMs,dx=sw.dir&&!sw.keepSeg?sw.dir*12:0;
       el.animate([{transform:'translate('+dx+'px,8px)'},{transform:'none'}],{duration:SPRINGS.Rise.ms,delay:d2,easing:SPRINGS.Rise.easing,fill:'backwards'});
-      el.animate([{opacity:0},{opacity:1}],{duration:180,delay:d2,easing:'cubic-bezier(0,0,.2,1)',fill:'backwards'});return;}
+      el.animate([{opacity:.3},{opacity:1}],{duration:180,delay:d2,easing:'cubic-bezier(0,0,.2,1)',fill:'backwards'});return;}
     var head=el.dataset.st==='h',idx=head?0:Math.min(rows++,ENTRANCE.MaxRows-1);
     var delay=head?0:idx*ENTRANCE.StaggerMs,dist=head?(launch?-ENTRANCE.HeaderDropPx:0):(launch?ENTRANCE.RowRisePx:10);if(!dist)return;
     el.animate([{transform:'translateY('+dist+'px)'},{transform:'none'}],{duration:SPRINGS.Rise.ms+(launch?0:80),delay:delay,easing:SPRINGS.Rise.easing,fill:'backwards'});
@@ -296,7 +296,7 @@ function other(){return theme()==='dark'?'light':'dark';}
 function syncThemeBtn(){var b=document.getElementById('themeBtn');if(!b)return;var d=theme()==='dark';
   b.innerHTML=d?ICON.moon:ICON.sun;b.setAttribute('aria-pressed',d?'true':'false');b.setAttribute('aria-label','Dark theme');}
 function setTheme(t,quiet){t=t==='dark'?'dark':'light';document.documentElement.dataset.theme=t;try{localStorage.setItem('nbfc-theme',t);}catch(e){}
-  document.querySelectorAll('meta[name=theme-color]').forEach(function(m){m.content=t==='dark'?'#0E0F12':'#F6F7F9';});
+  document.querySelectorAll('meta[name=theme-color]').forEach(function(m){m.content=t==='dark'?'#0E0F12':'#F3F1EC';});
   syncThemeBtn();if(!quiet)toast(t==='dark'?'Dark theme':'Light theme');}
 /* theme change: circular reveal from the toggle (todo-app ThemeReveal easing cubic-bezier(.2,0,0,1));
    without View Transitions a 250 ms colour crossfade; reduced motion: instant */
@@ -476,29 +476,33 @@ var WDL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 function cvLabel(d){var x=dt(d.id);return DOWS[x.getDay()]+' '+x.getDate()+' '+MONS[x.getMonth()]+' '+x.getFullYear()+': '+availTxt(d);}
 function cvHead(d){if(!d||d.stub)return '';try{var st=stories(d);return st[0]?st[0].h:'';}catch(e){return '';}}
 function coverHtml(d,i,n){var a=avail(d),wk=a.indexOf('w')>=0,x=dt(d.id);
-  return '<li class="cv'+(wk?' wk':'')+(a.length?'':' none')+'"><a class="cvi" href="#/'+d.id+'" data-cv="'+i+'" tabindex="-1"><span class="sr">'+esc(cvLabel(d))+'</span>'+
-    '<div class="cv-m" aria-hidden="true"><b>NBFC Guru</b><span>No. '+(i+1)+'</span></div>'+
+  return '<li class="cv'+(wk?' wk':'')+(a.length?'':' none')+'"><a class="cvi" href="#/'+d.id+'" data-cv="'+i+'" tabindex="-1"><span class="sr">'+esc(cvLabel(d))+'</span></a></li>';}
+/* virtualised: every edition keeps its li + link + label (a11y, keyboard, scroll extent); the visual
+   face is only written for covers near the centre (cfPaint), far ones are display:none (no layers). */
+function coverInner(d,i){var a=avail(d),x=dt(d.id);return '<div class="cv-m" aria-hidden="true"><b>NBFC Guru</b><span>No. '+(i+1)+'</span></div>'+
     '<div class="cv-ed" aria-hidden="true">Weekly edition</div>'+
     '<div class="cv-d" aria-hidden="true">'+x.getDate()+'</div><div class="cv-mo" aria-hidden="true">'+MONL[x.getMonth()]+' '+x.getFullYear()+'</div><div class="cv-wd" aria-hidden="true">'+WDL[x.getDay()]+'</div>'+
     '<div class="cv-h" aria-hidden="true">'+esc(cvHead(d))+'</div>'+
-    '<div class="cv-b" aria-hidden="true">'+a.map(function(k){return '<i'+(k==='w'?' class="w"':'')+'>'+(k==='a'?'Audio':AV[k])+'</i>';}).join('')+'</div></a></li>';}
+    '<div class="cv-b" aria-hidden="true">'+a.map(function(k){return '<i'+(k==='w'?' class="w"':'')+'>'+(k==='a'?'Audio':AV[k])+'</i>';}).join('')+'</div>';}
 function asc(){return M.days.slice().reverse();}
-function coverflowHtml(){var L=asc(),n=L.length;
+function cfDims(vw){var cw=innerWidth>=900?220:innerWidth<=380?160:184,st=Math.round(cw*.56);return {cw:cw,h:Math.round(cw*1.5),step:st,pad:Math.round((vw-st)/2)};}
+function coverflowHtml(){var L=asc(),n=L.length,k=cfDims(APP.clientWidth||innerWidth);
   return '<section class="lib" data-st aria-labelledby="h-lib"><div class="sec"><h2 id="h-lib">Library</h2><span class="aside">'+n+' editions</span></div>'+
-    '<div class="cf" id="cfBox"><div class="cf-vp" id="cf" role="group" aria-roledescription="carousel" aria-label="Editions, oldest to newest. Use the arrow keys to move.">'+
+    '<div class="cf" id="cfBox" style="--cf-w:'+k.cw+'px;--cf-h:'+k.h+'px;--cf-step:'+k.step+'px;--cf-pad:'+k.pad+'px"><div class="cf-vp" id="cf" role="group" aria-roledescription="carousel" aria-label="Editions, oldest to newest. Use the arrow keys to move.">'+
     '<ul class="cf-row">'+L.map(function(d,i){return coverHtml(d,i,n);}).join('')+'</ul></div>'+
     '<div class="cf-nav"><button type="button" class="ic press" data-cf="-1" aria-label="Older edition"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg></button>'+
     '<span class="cf-cap" id="cfCap" aria-live="polite"></span>'+
     '<button type="button" class="ic press" data-cf="1" aria-label="Newer edition"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg></button></div></div></section>';}
 var CF=null;
 function cfLayout(){var c=CF;if(!c)return;var vw=c.vp.clientWidth||innerWidth;
-  c.cw=innerWidth>=900?220:innerWidth<=380?160:184;c.h=Math.round(c.cw*1.5);c.step=Math.round(c.cw*.56);c.pad=Math.round((vw-c.step)/2);
-  var b=c.box.style;b.setProperty('--cf-w',c.cw+'px');b.setProperty('--cf-h',c.h+'px');b.setProperty('--cf-step',c.step+'px');b.setProperty('--cf-pad',c.pad+'px');}
+  var k=cfDims(vw);c.cw=k.cw;c.h=k.h;c.step=k.step;c.pad=k.pad;
+  var b=c.box.style;if(b.getPropertyValue('--cf-pad')===c.pad+'px'&&b.getPropertyValue('--cf-w')===c.cw+'px')return;b.setProperty('--cf-w',c.cw+'px');b.setProperty('--cf-h',c.h+'px');b.setProperty('--cf-step',c.step+'px');b.setProperty('--cf-pad',c.pad+'px');}
 function cfPaint(){var c=CF;c.raf=0;if(!c||!c.vp.isConnected)return;
   var f=c.vp.scrollLeft/c.step,X1=.62*c.cw,XS=.17*c.cw;
   for(var i=0;i<c.n;i++){var el=c.els[i],d=i-f,a=Math.abs(d);
-    if(a>5.6){if(!el._h){el.style.visibility='hidden';el._h=1;}continue;}
-    if(el._h){el.style.visibility='';el._h=0;}
+    if(a>5.6){if(!el._h){el.style.display='none';el._h=1;}continue;}
+    if(el._h){el.style.display='';el._h=0;}
+    if(!el._f){var dd=c.list[i];el.insertAdjacentHTML('beforeend',coverInner(M.byId[dd.id]||dd,i));el._f=1;}
     var sg=d<0?-1:1,m=Math.min(a,1),X=sg*(a<=1?a*X1:X1+(a-1)*XS);
     el.style.transform='translate3d('+(X-d*c.step).toFixed(1)+'px,0,0) perspective(800px) rotateY('+(-sg*m*65).toFixed(2)+'deg) scale('+(1-m*.1-Math.max(0,a-1)*.04).toFixed(4)+')';
     el.style.zIndex=String(200-Math.round(a*20));
@@ -526,8 +530,9 @@ function cfGo(i,focus){var c=CF;if(!c)return;i=Math.max(0,Math.min(c.n-1,i));c.t
   requestAnimationFrame(tick);}
 function cfStop(){var c=CF;if(!c||!c.sp)return;c.sp=false;c.ti=null;c.vp.style.scrollSnapType='';cfPaint();cfSettle();}
 function cfStep(dl,focus){var c=CF;if(!c)return;cfGo((c.sp&&c.ti!=null?c.ti:cfIdx())+dl,focus);}
-function initCoverflow(){var vp=document.getElementById('cf');if(!vp){CF=null;return;}
-  var c=CF={vp:vp,box:document.getElementById('cfBox'),list:asc(),els:[].slice.call(vp.querySelectorAll('.cvi')),raf:0,sp:false,i:0,ti:null};c.n=c.els.length;
+function initCoverflow(root){var vp=root.querySelector('#cf');if(!vp){CF=null;return;}
+  var c=CF={vp:vp,box:root.querySelector('#cfBox'),list:asc(),els:[].slice.call(vp.querySelectorAll('.cvi')),raf:0,sp:false,i:0,ti:null};c.n=c.els.length;
+  c.els.forEach(function(el){el.style.display='none';el._h=1;});
   cfLayout();
   var start=ARCH.i!=null?ARCH.i:c.n-1;vp.scrollLeft=start*c.step;cfPaint();cfSettle();
   var st=0;
@@ -576,8 +581,10 @@ function calKey(e){var c=e.target.closest('.cd');if(!c||!c.closest('.cal-g'))ret
     case 'Home':j=i-(i+((new Date(ARCH.mo+'-01T00:00:00').getDay()+6)%7))%7;break;case 'End':j=Math.min(all.length-1,i+6-(i+((new Date(ARCH.mo+'-01T00:00:00').getDay()+6)%7))%7);break;
     case 'PageUp':e.preventDefault();calGo(-1);return;case 'PageDown':e.preventDefault();calGo(1);return;default:return;}
   e.preventDefault();j=Math.max(0,Math.min(all.length-1,j));all.forEach(function(x){x.tabIndex=-1;});all[j].tabIndex=0;all[j].focus();}
-function initArchive(){initCoverflow();
-  var cal=$('.cal-vp'),x0=null,y0=0;
+function initArchive(root){
+  if(root._cf){var c=CF=root._cf;cfLayout();c.vp.scrollLeft=(ARCH.i!=null?ARCH.i:c.n-1)*c.step;cfPaint();cfSettle();return;}
+  initCoverflow(root);root._cf=CF;
+  var cal=root.querySelector('.cal-vp'),x0=null,y0=0;
   cal.addEventListener('touchstart',function(e){var t=e.touches[0];x0=t.clientX;y0=t.clientY;},{passive:true});
   cal.addEventListener('touchend',function(e){if(x0==null)return;var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;
     if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy)*1.4)calGo(dx<0?1:-1);},{passive:true});}
@@ -661,53 +668,84 @@ function warm(day){var ric=window.requestIdleCallback||function(f){return setTim
     k.style.cssText='position:absolute;left:-9999px;top:0;width:'+APP.clientWidth+'px;visibility:hidden;contain:layout paint';
     k.innerHTML=viewRead(day,'01-daily-watch');document.body.appendChild(k);void k.offsetHeight;k.remove();},{timeout:3000});}
 var seq=0;
+/* views live in a .vw wrapper (display:contents, so layout/CSS are unchanged). A switch never blanks the page:
+   the new view is built and laid out first, hidden below the old one (.vw.stg, visibility:hidden, so all parse,
+   style, layout and cover-flow measuring happens before anything moves); only then does the old view fade
+   (~100 ms, compositor-only) and the new one take its place and rise in. The tab blob and the pill title
+   update on tap, before any of that. Archive is the heaviest view: its node is kept after the first build
+   (and prebuilt while idle), so returning to it re-attaches a laid-out tree instead of rebuilding it. */
+var CUR=null,STG=null,ARCHC=null;
+function mkView(html){var t=document.createElement('template');t.innerHTML=html;var v=document.createElement('div');v.className='vw';v.appendChild(t.content);return v;}
+function archWant(){var ms=months(),mo=ARCH.mo;if(!mo||ms.indexOf(mo)<0)mo=ms[ms.length-1];if(ARCH.i!=null){var L=asc();if(L[ARCH.i])mo=L[ARCH.i].id.slice(0,7);}return mo;}
+function archKey(){return M.days.length+'|'+M.days[0].id;}
+function archView(){var c=ARCHC;ARCHC=null;
+  if(c&&c.key===archKey()&&c.mo===archWant()){ARCH.mo=c.mo;return c.el;}
+  var v=mkView(viewArchive());v._arch=1;return v;}
+function unanim(v){v.querySelectorAll('[data-st]').forEach(function(x){x.getAnimations().forEach(function(y){y.cancel();});});}
+/* getAnimations() is empty once detached, so cancel the fade-out first, then detach */
+function park(v){if(!v)return;if(v._arch&&v.isConnected)unanim(v);if(v.parentNode)v.remove();
+  if(v._arch)ARCHC={el:v,mo:ARCH.mo,key:archKey()};}
+function dropStage(){var g=STG;STG=null;if(g)park(g);}
+function prebuildArchive(){var ric=window.requestIdleCallback||function(f){return setTimeout(f,1500);};
+  ric(function(){if(ARCHC||S.view==='archive'||!M||!M.days||!M.days.length)return;var v=mkView(viewArchive());v._arch=1;ARCHC={el:v,mo:ARCH.mo,key:archKey()};},{timeout:4000});}
+/* optimistic chrome: tab highlight + pill title follow the tap immediately */
+function navNow(view){if(!view)return;document.querySelectorAll('#tabbar a').forEach(function(a){if(a.dataset.tab===view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  syncTabInd(true);var cbT=document.getElementById('cbT'),tpE=document.getElementById('tpE');
+  if(view!=='today'&&cbT)cbT.textContent=TTL[view]||'NBFC Guru';if(view==='archive'){if(tpE)tpE.textContent='Archive';var cbS=document.getElementById('cbS');if(cbS)cbS.textContent=M.days.length+' editions \u00b7 latest '+shortDay(M.days[0].id);}}
 function route(){
   var r=parse(),pv=S.view,pd=S.day,pk=S.key,my=++seq;
   if(pv==='archive'&&r.view!=='archive'&&!flying){if(CF)ARCH.i=CF.i;ARCH.y=scrollY;}
+  if(!first&&r.view!==pv)navNow(r.view);
   /* old content stays on screen until the new view is built */
   return getDay(r.day).then(function(day){
     if(my!==seq)return;
     S.view=r.view;S.day=r.day;S.key=r.key;
-    var html=S.view==='archive'?viewArchive():S.view==='markets'?viewMarkets(day):S.view==='read'?viewRead(day,S.key):viewToday(day);
     var changed=!first&&(pv!==S.view||pd!==S.day||pk!==S.key),dir=changed?dirFor(pv,pd,pk,S.view,S.day,S.key):0;
-    var segFrom=pv==='read'&&S.view==='read'?segInd:null,de=document.documentElement;
-    var pre=null;
-    function apply(){
-      if(pre){APP.replaceChildren(document.importNode(pre.content,true));pre=null;}else APP.innerHTML=html;APP.setAttribute('aria-busy','false');
+    var segFrom=pv==='read'&&S.view==='read'?segInd:null;
+    dropStage();
+    var oh=APP.offsetHeight;
+    var nv=S.view==='archive'?archView():mkView(S.view==='markets'?viewMarkets(day):S.view==='read'?viewRead(day,S.key):viewToday(day));
+    if(nv===CUR)nv=mkView(viewArchive()),nv._arch=1;
+    function post(){
+      APP.setAttribute('aria-busy','false');
       document.title=(S.view==='today'?'Today\u2019s Brief':S.view[0].toUpperCase()+S.view.slice(1))+' · '+shortDay(day.id)+' · NBFC Guru';
       document.querySelectorAll('#tabbar a').forEach(function(a){var t=a.dataset.tab;
         a.href=t==='archive'?'#/archive':t==='today'?'#/'+day.id:'#/'+day.id+'/'+t;
         if(t===S.view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
       if(changed&&(pv!==S.view||pd!==S.day)){window.scrollTo(0,S.view==='archive'?ARCH.y||0:0);var hd=$('h1');if(hd){hd.setAttribute('tabindex','-1');hd.focus({preventScroll:true});}}
-      if(S.view==='archive')initArchive();
       chromeBar(day);
       syncTabInd(!first);syncSegInd(segFrom);fit(true);
       var pc=$('.pill[aria-current=true]'),pl=pc&&pc.parentNode;
       if(pl&&pl.scrollTo)pl.scrollTo({left:Math.max(0,pc.offsetLeft-(pl.clientWidth-pc.offsetWidth)/2),behavior:first||RM.matches?'auto':'smooth'});
-      cascade(APP,first);}
+      cascade(nv,first);}
+    function commit(){var old=CUR;CUR=nv;STG=null;
+      if(old&&old!==nv){if(old.parentNode)park(old);}
+      [].slice.call(APP.childNodes).forEach(function(n){if(n!==nv)n.remove();});
+      nv.classList.remove('stg');if(nv.parentNode!==APP)APP.appendChild(nv);}
     if(first||!changed||RM.matches||!APP.animate||flying){
-      var wasFirst=first;apply();landBook();if(first)riseTabbar();first=false;prefetch(day.id);if(wasFirst)warm(day);return;}
-    /* sequential swap, never a crossfade: old content leaves (opacity 0, -4px, ~100 ms), then the new view
-       is written and rises in. Header, date chips and (Read -> Read) the desk tabs stay put. */
+      var wasFirst=first;APP.appendChild(nv);commit();if(S.view==='archive')initArchive(nv);post();
+      landBook();if(first)riseTabbar();first=false;prefetch(day.id);if(wasFirst){warm(day);prebuildArchive();}return;}
+    /* stage: build + lay out hidden, old view untouched and fully visible meanwhile */
     var keepSeg=pv==='read'&&S.view==='read';
-    /* parse the new view while the old one fades (compositor-only), so the swap itself is shorter */
-    pre=document.createElement('template');pre.innerHTML=html;
-    if(!outP)outP=swapOut(keepSeg).then(function(){outP=null;});
-    outP.then(function(){if(my!==seq)return;
-      APP.style.minHeight=APP.offsetHeight+'px';
-      inSwap={dir:dir,keepSeg:keepSeg};apply();inSwap=null;
+    nv.classList.add('stg');APP.appendChild(nv);STG=nv;
+    if(S.view==='archive')initArchive(nv);
+    void APP.offsetHeight;
+    if(!outP)outP=swapOut(CUR,keepSeg).then(function(){outP=null;});
+    outP.then(function(){if(my!==seq||STG!==nv)return;
+      APP.style.minHeight=oh+'px';
+      commit();inSwap={dir:dir,keepSeg:keepSeg};post();inSwap=null;
       clearTimeout(mhT);mhT=setTimeout(function(){if(my===seq)APP.style.minHeight='';},520);});
     prefetch(day.id);
   });}
 var outP=null,inSwap=null,mhT;
 function stat(el,keepSeg){return el.classList.contains('hd')||el.classList.contains('pills')||(keepSeg&&el.classList.contains('seg'));}
-function swapOut(keepSeg){
-  var vh=innerHeight,list=[];
-  APP.querySelectorAll('[data-st]').forEach(function(el){if(stat(el,keepSeg))return;
+function swapOut(root,keepSeg){
+  var vh=innerHeight,list=[];if(!root)return Promise.resolve();
+  root.querySelectorAll('[data-st]').forEach(function(el){if(stat(el,keepSeg))return;
     var r=el.getBoundingClientRect();if(r.bottom<0||r.top>vh)return;list.push(el);});
   if(!list.length)return Promise.resolve();
   var anims=list.map(function(el){var o=getComputedStyle(el).opacity;el.getAnimations().forEach(function(x){x.cancel();});
-    return el.animate([{opacity:o,transform:'none'},{opacity:0,transform:'translateY(-4px)'}],{duration:100,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'});});
+    return el.animate([{opacity:o,transform:'none'},{opacity:.12,transform:'translateY(-4px)'}],{duration:100,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'});});
   return Promise.all(anims.map(function(x){return x.finished.catch(function(){});}));}
 APP.addEventListener('click',function(e){
   var t=e.target.closest('button,a[data-jump]');if(!t)return;
@@ -733,6 +771,7 @@ window.addEventListener('offline',function(){toast('Offline · showing the last 
 
 loadData().then(route).catch(function(err){
   APP.setAttribute('aria-busy','false');
+  dropStage();if(CUR)park(CUR);CUR=null;
   APP.innerHTML='<div class="g card empty" style="margin-top:60px"><h2>Could not load the brief</h2><p>'+(navigator.onLine===false?'You are offline and no edition is saved on this device yet.':'The data file did not load. Try again in a minute.')+'</p><a class="cta press" href="">Retry</a></div>';
   console.error(err);});
 /* ---------------- liquid glass ----------------
@@ -744,10 +783,12 @@ loadData().then(route).catch(function(err){
 var LGX=(function(){try{var b=navigator.userAgentData&&navigator.userAgentData.brands;
   return !!(b&&b.some(function(x){return /Chromium/.test(x.brand);}))&&!matchMedia('(prefers-reduced-transparency: reduce)').matches&&!matchMedia('(forced-colors: active)').matches;}catch(e){return false;}})();
 /* band = lens width at the rim (px); scale stays < ~1.3x band so the edge compresses the backdrop without folding it into a mirror image */
-/* band = rim width (px) that bends; scale < ~1.3x band so it compresses without folding; ca gives ~0.5px R/B split at the very edge */
-var LGO={tp:{band:13,scale:16,ca:.03,blur:.4,soft:12,sat:1.5,mag:0,lift:{light:[.26,.74],dark:[.22,.06]}},
-  nav:{band:14,scale:17,ca:.03,blur:.4,soft:12,sat:1.5,mag:0,lift:{light:[.26,.74],dark:[.22,.06]}},
-  ind:{band:12,scale:14,ca:.02,blur:0,soft:0,sat:1.3,mag:.03,lift:{light:[.30,.72],dark:[.45,.14]}}};
+/* band = rim width (px) that bends; scale < 1.33x band (smoothstep max slope 1.5) so it compresses without folding.
+   v8: wider, stronger rim (18-22px, up to ~13px offset) for a visible lens; ca keeps the R/B split at ~0.5-0.8px.
+   soft = frost radius of the flat centre; lift = luminance [slope, intercept] per theme (labels stay >= 4.5:1). */
+var LGO={tp:{band:18,scale:23,ca:.06,blur:.4,soft:8,sat:1.6,mag:.02,lift:{light:[.28,.72],dark:[.24,.06]}},
+  nav:{band:22,scale:28,ca:.05,blur:.4,soft:8,sat:1.6,mag:.02,lift:{light:[.26,.70],dark:[.24,.06]}},
+  ind:{band:14,scale:17,ca:.04,blur:0,soft:0,sat:1.3,mag:.03,lift:{light:[.30,.72],dark:[.45,.14]}}};
 var LGS=null;
 function lgMap(w,h,o){var c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d'),im=g.createImageData(w,h),d=im.data,
   r=Math.min(w,h)/2,cx=w/2,cy=h/2,hx=cx-r,hy=cy-r,band=Math.min(o.band,r);

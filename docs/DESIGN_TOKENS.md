@@ -1,4 +1,4 @@
-# NBFC Guru design tokens (v6)
+# NBFC Guru design tokens (v8)
 
 All colour, type, spacing, radius and elevation values live as CSS custom properties at the top of `app.css`.
 Components use **semantic** tokens only (`--bg`, `--text-1`, `--accent` …). Never reference a raw hex or a
@@ -77,6 +77,41 @@ Dark theme uses deeper, lower-opacity shadows plus a 1px light edge on covers.
 - Top pill: fixed, `--pill-h` 52px (60 on ≥900px), inset 12px, `--chrome` plus 30px blur. It is the only header: the
   page title fades out under it before the compact title, date and key stat fade in.
 - Bottom nav: same glass, with a neutral `--surface-2` active indicator and the active label at weight 650 in `--text-1`.
+
+## Light theme: warm paper (v8)
+
+The light theme is off-white paper rather than pure white. Neutrals are warm; the ink-blue accent and the semantic colours are kept (up and warn darkened a step for contrast on the warmer surfaces). Dark theme is unchanged. Where this section and the tables above differ, this section wins.
+
+| Token | Light | Use |
+|---|---|---|
+| n0 / `--surface` (cards) | `#FBFAF7` | cards, chrome-solid, on-accent |
+| n50 / `--bg` | `#F3F1EC` | page background, `theme-color` meta and manifest |
+| n100 / `--surface-2` | `#ECE9E2` | secondary surface |
+| n200 / hairlines | `#E2DED5` | dividers; `--border` / `--hairline` / `--border-strong` are rgba(52,42,24,.13 / .09 / .20) |
+| n300…n900 | `#CDC8BD` `#A29D92` `#6A655C` `#57534B` `#403C36` `#2A2824` `#1B1A17` | warm text and icon ramp |
+| `--up` / `--warn` | `#0C7045` / `#86560A` | |
+| `--chrome` | rgba(251,250,247,.86) | |
+
+Measured contrast on bg, card and surface-2: text-2 6.3–7.3:1, text-3 ≥ 4.77:1, accent ≥ 6.26:1, down ≥ 5.37:1, warn ≥ 5.17:1.
+
+### Bottom nav in light: smoky glass
+- `--nav-tint-x` rgba(38,34,28,.13) graphite over the refracted frost (fallback without SVG filters: `--nav-tint` rgba(214,210,201,.78)).
+- Rim `--nav-rim` rgba(255,255,255,.7) with `--nav-line` rgba(40,32,20,.16); `--nav-shadow` 0 14px 34px -10px rgba(40,32,20,.34), 0 3px 10px rgba(40,32,20,.12).
+- Inactive labels `--nav-ink` = n800. The active blob stays bright (`--blob-x` white .62 over its own lifted lens) so it reads clearly against the smoky bar.
+- Measured labels in light: ≥ 5.98:1 over the dark covers, 6.97:1 over the black button, 6.21:1 over text. In dark, the nav tokens map to the glass tokens.
+
+## Liquid glass (v8 strength)
+- Rim bend: band 18px (pill), 22px (nav), 14px (blob). Scale 23 / 28 / 17, so it stays under 1.33× band (monotonic, no mirror fold). Centre frost `soft` 8, saturate 1.6, and a small magnification (.02).
+- Chroma `ca` .06 / .05 / .04, about 0.7px of R/B split per side at the rim (blob about 0.35px).
+- Lift: pill light .28 + .72, nav light .26 + .70 (the graphite tint sits on top), dark .24 + .06; blob unchanged.
+- Labels and icons stay above the glass on every wobble frame. Scroll at 4× CPU: p95 16.8 ms, 1 frame over 20 ms.
+
+## View switching (v8)
+- Each view lives in a `.vw` wrapper (`display:contents`). On a switch, the new view is built and laid out first, hidden below the old one (`.vw.stg`: visibility hidden, no pointer events). The cover-flow is measured and painted at this stage too. Only then does the old view fade (100 ms to .12, compositor only), and the new view replaces it and rises in (opacity .3 → 1). The content area is never empty.
+- The tab blob and the pill title or subtitle update on tap, before the view is built.
+- The Archive node is kept after it is built and re-attached on return, keyed on the edition count, the newest id and the calendar month. It is also prebuilt in `requestIdleCallback` after the first load.
+- Cover-flow is virtualised. All 68 links and their labels stay in the DOM, but a cover's face is only written when it comes within 5.6 positions of the centre; far covers are `display:none`. The `--cf-*` sizes are inlined in the HTML.
+- 10 rapid Markets↔Archive switches at 4× CPU: the deepest dip is one frame (30–43 ms) with the old content at 12% and the header, pill and nav still showing (before: up to 234 ms blank, ~1 s in the owner's video). Nav highlight 76–137 ms after the synthetic click, including input latency.
 
 ## Liquid glass (v7b corrections)
 
