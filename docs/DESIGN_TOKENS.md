@@ -77,3 +77,24 @@ Dark theme uses deeper, lower-opacity shadows plus a 1px light edge on covers.
 - Top pill: fixed, `--pill-h` 52px (60 on ≥900px), inset 12px, `--chrome` plus 30px blur. It is the only header: the
   page title fades out under it before the compact title, date and key stat fade in.
 - Bottom nav: same glass, with a neutral `--surface-2` active indicator and the active label at weight 650 in `--text-1`.
+
+## Liquid glass (v7)
+
+Only three elements are glass: the top pill (`#tp>.lg`), the bottom nav (`#tabbar>.lg`) and the nav blob (`#tabbar>.ind`). Cards stay lightly frosted.
+
+- `.lg` is a child layer, so the pill and the nav never become a backdrop root. Never put opacity, filter or mask on `.tp` or `.tabbar`; animate their transform only.
+- Fallback on every engine: `--glass-tint` with `blur(16px) saturate(170%)`, a specular radial (`--glass-spec`) and rim inset lines (`--glass-rim`, `--glass-rim2`, `--glass-line`).
+- On Chromium, `html.lgx` swaps in `backdrop-filter:url(#lg-*)` with the lighter `--glass-tint-x`. `lgSet()` in app.js draws a displacement map at the element's exact size:
+  - R/G hold an inward edge-lens vector, ~0 in the centre and steepest at the rim.
+  - B holds the rim weight.
+  - The map is rebuilt on resize through a ResizeObserver.
+- The filter chain:
+  1. A light blur.
+  2. Three displacements (scale ±ca), one per R/G/B channel, then recombined for the chromatic fringe.
+  3. A sharp rim masked over a frosted centre, then saturation.
+  - Keep `scale < ~1.3 × band`, or the rim folds into a mirror image.
+- The blob uses an rAF spring (k 300, c 18, m 1) on its transform:
+  - It stretches with velocity, with scaleX ≤ 1.25 and scaleY ≥ 0.85.
+  - It squashes against the capsule wall rather than leaving it.
+  - A press squash is 0.9.
+  - With reduced motion it jumps.

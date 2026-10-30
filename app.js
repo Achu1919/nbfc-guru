@@ -133,10 +133,10 @@ function cascade(root,launch){
     el.animate([{opacity:launch?0:.35},{opacity:1}],{duration:FADE_IN,delay:delay,easing:STANDARD,fill:'backwards'});
   });
 }
-function riseTabbar(){var t=document.getElementById('tabbar');if(!t.animate)return;
-  if(RM.matches){t.animate([{opacity:0},{opacity:1}],{duration:150});return;}
+function riseTabbar(){var t=document.getElementById('tabbar');if(!t.animate||RM.matches)return;
+  /* transform only: opacity<1 on the nav would make it a backdrop root and cut its glass off from the page */
   var base=getComputedStyle(t).transform;base=base==='none'?'':base+' ';
-  t.animate([{transform:base+'translateY('+ENTRANCE.BottomRisePx+'px)',opacity:0},{transform:base+'translateY(0)',opacity:1}],
+  t.animate([{transform:base+'translateY(120px)'},{transform:base+'translateY(0)'}],
     {duration:SPRINGS.Snappy.ms,delay:ENTRANCE.BottomDelayMs,easing:SPRINGS.Snappy.easing,fill:'backwards'});}
 
 /* ---------------- data layer ---------------- */
@@ -615,7 +615,33 @@ function placeInd(box,act,from){if(!box)return null;var ind=box.querySelector(':
     ind.animate([{transform:'translate('+from.x+'px,'+from.y+'px) scaleX('+(from.w/w)+')'},{transform:'translate('+x+'px,'+y+'px)'}],{duration:SPRINGS.Snappy.ms,easing:SPRINGS.Snappy.easing});
   return {x:x,y:y,w:w};}
 var tabInd=null,segInd=null;
-function syncTabInd(anim){var tb=document.getElementById('tabbar');tabInd=placeInd(tb,tb.querySelector('a[aria-current=page]'),anim?tabInd:null);}
+/* bottom-nav blob: underdamped spring (k 300, c 18, m 1) on translateX, rAF + transform only.
+   It stretches along its travel (scaleX up to 1.25, scaleY down to .85) from the live velocity, overshoots,
+   wobbles and settles in ~0.5 s; a press squashes it slightly. Reduced motion: it jumps. */
+var TS={x:0,v:0,t:0,y:0,p:1,pv:0,pt:1,raf:0,last:0,on:false,ind:null};
+function syncTabInd(anim){var tb=document.getElementById('tabbar'),act=tb.querySelector('a[aria-current=page]'),ind=tb.querySelector(':scope>.ind');
+  if(!ind){ind=document.createElement('span');ind.className='ind';ind.setAttribute('aria-hidden','true');tb.appendChild(ind);}
+  TS.ind=ind;if(!act){ind.style.opacity='0';return;}
+  var w=act.offsetWidth,h=act.offsetHeight;
+  if(ind._w!==w||ind._h!==h){ind._w=w;ind._h=h;ind.style.width=w+'px';ind.style.height=h+'px';lgSet(ind,'lg-ind',LGO.ind);}
+  ind.style.opacity='1';TS.t=act.offsetLeft;TS.y=act.offsetTop;
+  if(!anim||!TS.on||RM.matches){TS.x=TS.t;TS.v=0;TS.on=true;tsPaint();return;}
+  tsKick();}
+function tsKick(){if(!TS.raf){TS.last=performance.now();TS.raf=requestAnimationFrame(tsStep);}}
+function tsStep(now){var dt=Math.min(.034,Math.max(0,(now-TS.last)/1000)),n=4,h=dt/n;TS.last=now;
+  for(var i=0;i<n;i++){TS.v+=(-300*(TS.x-TS.t)-18*TS.v)*h;TS.x+=TS.v*h;TS.pv+=(-700*(TS.p-TS.pt)-26*TS.pv)*h;TS.p+=TS.pv*h;}
+  var done=Math.abs(TS.x-TS.t)<.25&&Math.abs(TS.v)<4&&Math.abs(TS.p-TS.pt)<.002&&Math.abs(TS.pv)<.05;
+  if(done){TS.x=TS.t;TS.v=0;TS.p=TS.pt;TS.pv=0;}
+  tsPaint();TS.raf=done?0:requestAnimationFrame(tsStep);}
+function tsPaint(){var ind=TS.ind;if(!ind)return;var s=Math.min(.25,Math.abs(TS.v)/1800),q=1-TS.p,sx=(1+s)*(1+q*.6),sy=(1-s*.6)*(1-q),
+    w=ind._w||ind.offsetWidth,tb=ind.parentNode,lo=Math.min(TS.y,TS.t),hi=Math.max(tb.clientWidth-TS.y,TS.t+w),c=TS.x+w/2,half=w*sx/2,over=Math.max(0,lo-(c-half),(c+half)-hi);
+  /* the overshoot never leaves the capsule: past the wall it squashes against it instead */
+  if(over>0){sx=Math.max(.88,sx-2*over/w);sy=Math.min(1.05,sy+over/w*.6);half=w*sx/2;c=Math.min(Math.max(c,lo+half),hi-half);}
+  ind.style.transform='translate3d('+(c-w/2).toFixed(2)+'px,'+TS.y+'px,0) scale('+sx.toFixed(4)+','+sy.toFixed(4)+')';}
+(function(){var tb=document.getElementById('tabbar');if(!tb)return;
+  function press(on){if(RM.matches)return;TS.pt=on?.9:1;tsKick();}
+  tb.addEventListener('pointerdown',function(e){if(e.target.closest('a'))press(true);});
+  ['pointerup','pointercancel','pointerleave'].forEach(function(t){tb.addEventListener(t,function(){if(TS.pt!==1)press(false);});});})();
 function syncSegInd(from){var seg=$('.seg');segInd=seg?placeInd(seg,seg.querySelector('a[aria-current=true]'),from):null;}
 function reInd(){syncTabInd(false);syncSegInd(null);fit();}
 /* scrollable tables get a fade edge only when they actually overflow */
@@ -709,10 +735,55 @@ loadData().then(route).catch(function(err){
   APP.setAttribute('aria-busy','false');
   APP.innerHTML='<div class="g card empty" style="margin-top:60px"><h2>Could not load the brief</h2><p>'+(navigator.onLine===false?'You are offline and no edition is saved on this device yet.':'The data file did not load. Try again in a minute.')+'</p><a class="cta press" href="">Retry</a></div>';
   console.error(err);});
+/* ---------------- liquid glass ----------------
+   Chromium can run an SVG filter as a backdrop filter. For each glass element we draw a displacement map the
+   exact size of the element: a rounded-rect "edge lens" whose vectors point inward, ~0 in the middle and
+   strongest at the rim (plus an optional overall magnification for the nav blob). The filter displaces the
+   lightly blurred backdrop three times with slightly different strengths, keeps R, G and B from one each
+   (chromatic fringe), recombines and saturates. Other engines keep the CSS blur+saturate glass. */
+var LGX=(function(){try{var b=navigator.userAgentData&&navigator.userAgentData.brands;
+  return !!(b&&b.some(function(x){return /Chromium/.test(x.brand);}))&&!matchMedia('(prefers-reduced-transparency: reduce)').matches&&!matchMedia('(forced-colors: active)').matches;}catch(e){return false;}})();
+/* band = lens width at the rim (px); scale stays < ~1.3x band so the edge compresses the backdrop without folding it into a mirror image */
+var LGO={tp:{band:26,scale:36,ca:.05,blur:.5,soft:5,sat:1.6,mag:0},nav:{band:30,scale:42,ca:.05,blur:.5,soft:4,sat:1.6,mag:0},ind:{band:16,scale:14,ca:.04,blur:0,sat:1.3,mag:.08}};
+var LGS=null;
+function lgMap(w,h,o){var c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d'),im=g.createImageData(w,h),d=im.data,
+  r=Math.min(w,h)/2,cx=w/2,cy=h/2,hx=cx-r,hy=cy-r,band=Math.min(o.band,r);
+  for(var j=0;j<h;j++)for(var i=0;i<w;i++){var px=i+.5-cx,py=j+.5-cy,qx=Math.abs(px)-hx,qy=Math.abs(py)-hy,nx,ny,sd,L;
+    if(qx>0&&qy>0){L=Math.sqrt(qx*qx+qy*qy);sd=L-r;nx=qx/L;ny=qy/L;}else if(qx>qy){sd=qx-r;nx=1;ny=0;}else{sd=qy-r;nx=0;ny=1;}
+    if(px<0)nx=-nx;if(py<0)ny=-ny;
+    var t=1+sd/band;t=t<0?0:t>1?1:t;var f=t*t*(1.6-.6*t);   /* convex bevel: flat centre, steep rim */
+    var dx=-nx*f-o.mag*px/cx,dy=-ny*f-o.mag*py/cy,k=(j*w+i)*4;
+    d[k]=128+dx*127;d[k+1]=128+dy*127;d[k+2]=t>.5?(t-.5)*510:0;d[k+3]=255;}   /* B = rim weight */
+  g.putImageData(im,0,0);return c.toDataURL();}
+function lgSet(el,id,o){if(!LGX||!el||!o)return;var w=Math.round(el.offsetWidth),h=Math.round(el.offsetHeight);if(w<8||h<8)return;
+  if(el._lg===w+'x'+h)return;el._lg=w+'x'+h;
+  if(!LGS){LGS=document.createElementNS('http://www.w3.org/2000/svg','svg');LGS.setAttribute('aria-hidden','true');LGS.setAttribute('width','0');LGS.setAttribute('height','0');
+    LGS.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';document.body.appendChild(LGS);}
+  var S=o.scale,ch=function(n,sc,m){return '<feDisplacementMap in="bl" in2="map" scale="'+sc.toFixed(1)+'" xChannelSelector="R" yChannelSelector="G" result="d'+n+'"/>'+
+    '<feColorMatrix in="d'+n+'" type="matrix" values="'+m+'" result="c'+n+'"/>';};
+  /* rim: a near-sharp, refracted, R/G/B-split copy; centre: the same lens over a frosted copy so the pill's own text stays legible.
+     The map's blue channel (rim weight) masks the sharp copy over the frosted one. */
+  var f='<filter id="'+id+'" x="0" y="0" width="'+w+'" height="'+h+'" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">'+
+    '<feGaussianBlur in="SourceGraphic" stdDeviation="'+o.blur+'" result="bl"/>'+
+    '<feImage href="'+lgMap(w,h,o)+'" x="0" y="0" width="'+w+'" height="'+h+'" preserveAspectRatio="none" result="map"/>'+
+    ch('r',S*(1+o.ca),'1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0')+ch('g',S,'0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0')+ch('b',S*(1-o.ca),'0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0')+
+    '<feBlend in="cr" in2="cg" mode="screen" result="rg"/><feBlend in="rg" in2="cb" mode="screen" result="rgb"/>'+
+    (o.soft?'<feColorMatrix in="map" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0" result="wa"/>'+
+      '<feComposite in="rgb" in2="wa" operator="in" result="rim"/>'+
+      '<feGaussianBlur in="SourceGraphic" stdDeviation="'+o.soft+'" result="sb"/>'+
+      '<feDisplacementMap in="sb" in2="map" scale="'+S.toFixed(1)+'" xChannelSelector="R" yChannelSelector="G" result="sd"/>'+
+      '<feComposite in="rim" in2="sd" operator="over" result="rgb2"/>':'<feOffset in="rgb" result="rgb2"/>')+
+    '<feColorMatrix in="rgb2" type="saturate" values="'+o.sat+'"/></filter>';
+  var old=LGS.querySelector('#'+id);if(old)old.remove();LGS.insertAdjacentHTML('beforeend',f);
+  var v='url(#'+id+')';el.style.webkitBackdropFilter='none';el.style.backdropFilter='none';void el.offsetWidth;el.style.webkitBackdropFilter=v;el.style.backdropFilter=v;}
+function lgAll(){var tl=$('#tp>.lg'),nl=$('#tabbar>.lg');lgSet(tl,'lg-tp',LGO.tp);if(nl&&nl.offsetWidth)lgSet(nl,'lg-nav',LGO.nav);if(TS.ind)lgSet(TS.ind,'lg-ind',LGO.ind);}
+if(LGX){document.documentElement.classList.add('lgx');lgAll();
+  if(window.ResizeObserver){var lgRO=new ResizeObserver(function(){lgAll();});lgRO.observe(document.getElementById('tp'));lgRO.observe(document.getElementById('tabbar'));}}
+
 /* ---------------- top pill: one header that morphs ----------------
    The page title (.hd) scrolls up under the floating pill and fades out; only after it is gone does the pill
    swap its brand line (.tp-a) for the compact title + key stat (.tp-b). Never two titles on screen at once. */
-var TPA=document.getElementById('tpA'),TPB=document.getElementById('tpB'),TPF=document.querySelector('.tp-fade'),hdEl=null,hdRange=120,tpRaf=0,tpLast=-1;
+var TPA=document.getElementById('tpA'),TPB=document.getElementById('tpB'),hdEl=null,hdRange=120,tpRaf=0,tpLast=-1;
 var TTL={today:'Today\u2019s Brief',read:'Read',markets:'Markets',archive:'Archive'};
 function chromeBar(day){
   var it=item(day,'nifty'),mk='';
