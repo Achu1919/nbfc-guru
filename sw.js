@@ -1,12 +1,12 @@
 /* NBFC Guru service worker.
-   Shell: precached, served cache-first (updated on each new SW version).
-   Data (data.js, data/*.json, days/*): network-first, falling back to the last copy we saw,
-   so the app opens offline with the last edition. Fonts: cache-first. */
-const VERSION = 'v1-2026-10-30';
+   Shell: precached, stale-while-revalidate (a new deploy shows on the next open).
+   Data (data.js, data/*.json, days/*): network-first; if a saved copy exists and the network takes
+   over 3 s (or is down), the saved copy is shown and the app offers "New edition available — Refresh". Fonts: cache-first. */
+const VERSION = 'v2-2026-10-30';
 const SHELL = `shell-${VERSION}`;
 const DATA = 'data-v1';
 const FONTS = 'fonts-v1';
-const SHELL_FILES = ['/', '/index.html', '/app.css', '/app.js', '/manifest.webmanifest',
+const SHELL_FILES = ['/', '/index.html', '/reader.html', '/app.css', '/app.js', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/favicon-64.png', '/icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -21,17 +21,22 @@ self.addEventListener('activate', e => {
 
 const isData = p => p === '/data.js' || p.startsWith('/data/') || p.startsWith('/days/');
 
-async function networkFirst(req, cacheName, key) {
+// Network-first. If we already hold a copy and the network is slower than `wait` ms, show the copy
+// now; the fetch keeps going, refreshes the cache, and the page's update check offers a Refresh.
+async function networkFirst(req, cacheName, key, wait = 0, ev) {
   const cache = await caches.open(cacheName);
-  try {
-    const res = await fetch(req, { cache: 'no-cache' });
-    if (res.ok) cache.put(key || req, res.clone());
+  const net = fetch(req, { cache: 'no-cache' }).then(res => {
+    if (res.ok) return cache.put(key || req, res.clone()).then(() => res, () => res);
     return res;
-  } catch (err) {
-    const hit = await cache.match(key || req, { ignoreSearch: true });
-    if (hit) return hit;
-    throw err;
+  });
+  const hit = await cache.match(key || req, { ignoreSearch: true });
+  if (hit && wait) {
+    if (ev) ev.waitUntil(net.catch(() => {}));
+    const slow = new Promise(r => setTimeout(() => r(null), wait));
+    const first = await Promise.race([net.catch(() => null), slow]);
+    return first && first.ok ? first : hit;
   }
+  try { return await net; } catch (err) { if (hit) return hit; throw err; }
 }
 async function cacheFirst(req, cacheName) {
   const cache = await caches.open(cacheName);
@@ -44,7 +49,7 @@ async function cacheFirst(req, cacheName) {
 
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET') return;
+  if (req.method !== 'GET' || req.headers.has('range')) return; // update probes read data.js directly
   const url = new URL(req.url);
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     e.respondWith(cacheFirst(req, FONTS)); return;
@@ -55,7 +60,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(networkFirst(req, SHELL, '/index.html').catch(() => caches.match('/index.html')));
     return;
   }
-  if (isData(url.pathname)) { e.respondWith(networkFirst(req, DATA, url.pathname)); return; }
+  if (isData(url.pathname)) { e.respondWith(networkFirst(req, DATA, url.pathname, 3000, e)); return; }
   // shell assets: stale-while-revalidate, so a new deploy shows up on the next open
   e.respondWith((async () => {
     const cache = await caches.open(SHELL);

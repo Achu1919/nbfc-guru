@@ -162,10 +162,24 @@ function fromJson(j){
   M.series={};var ser=j.series||{};Object.keys(ser).forEach(function(k){
     M.series[k]=Object.keys(ser[k]).sort().map(function(d){return {d:d,v:ser[k][d]};});});}
 function loadScript(src){return new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+/* data.js stays the source of truth. data/latest.json (~19 KB compressed vs ~1.1 MB) is used only when
+   it was built in the same publish run as data.js (same "generated"), read from data.js's first bytes.
+   So a missing or stale data/ folder can never show an old edition. ?src=json / ?src=legacy force one. */
+function headGenerated(){
+  return fetch('/data.js?probe='+Date.now(),{headers:{Range:'bytes=0-255'},cache:'no-store'}).then(function(r){
+    if(!r.ok||!r.body)throw 0;var rd=r.body.getReader();
+    return rd.read().then(function(c){rd.cancel().catch(function(){});return new TextDecoder().decode(c.value||new Uint8Array()).slice(0,400);});})
+  .then(function(t){var g=t.match(/"generated":\s*"([^"]+)"/);return g?g[1]:null;});}
+function legacy(){return loadScript('/data.js').then(function(){fromLegacy(window.BRIEFING);});}
 function loadData(){
-  return fetch('/data/latest.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json();})
-    .then(function(j){if(!j||j.schema_version!==1||!j.today||!(j.primary||/[?&]src=json/.test(location.search)))throw 0;fromJson(j);})
-    .catch(function(){return loadScript('/data.js').then(function(){fromLegacy(window.BRIEFING);});});}
+  var q=location.search;if(/[?&]src=legacy/.test(q))return legacy();
+  var force=/[?&]src=json/.test(q);
+  var js=fetch('/data/latest.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json();});
+  var gen=force?Promise.resolve(null):headGenerated().catch(function(){return null;});
+  return Promise.all([js,gen]).then(function(v){var j=v[0],g=v[1];
+    if(!j||j.schema_version!==1||!j.today)throw 0;
+    if(!force&&(!g||j.generated<g))throw 0; /* stale or unverifiable: use data.js */
+    fromJson(j);}).catch(function(){return legacy();});}
 function getDay(id){var d=M.byId[id];if(!d)return Promise.resolve(null);if(!d.stub)return Promise.resolve(d);
   return fetch('/data/'+id+'.json').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(full){
     M.byId[id]=full;M.days[M.days.indexOf(d)]=full;return full;}).catch(function(){return d;});}
@@ -186,7 +200,7 @@ function shortDay(id){var d=dt(id);return DOWS[d.getDay()]+' '+d.getDate()+' '+M
 function dm(id){var d=dt(id);return d.getDate()+' '+MONS[d.getMonth()];}
 function srcA(s){if(!s||!s.url)return '<span>source not linked in report</span>';
   return '<a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer">'+esc(s.label||domain(s.url))+'<span class="sr"> (opens in new tab)</span></a>';}
-function itemMeta(it,dayId){var p=[];p.push(it.asof?(it.asof===dayId?'today':dm(it.asof)):'as-of not stated');if(it.basis)p.push(esc(it.basis));p.push(srcA(it.source));return p.join(' · ');}
+function itemMeta(it,dayId){var p=[];p.push(it.asof?(it.asof===dayId?'today':dm(it.asof)):'as-of not stated');if(it.basis)p.push(esc(it.basis));p.push(it.sources&&it.sources.length?it.sources.map(srcA).join(', '):srcA(it.source));return p.join(' · ');}
 function dirOf(it){if(it.dir==='up'||it.dir==='down')return it.dir==='up'?'up':'dn';
   if(GROUP[it.key]==='flows'){var n=num(it.value);return n==null?'':n<0?'dn':'up';}return '';}
 function chg(it){var c=it.change;if(!c||/^[—–-]$/.test(String(c).trim()))return '<span class="chip flat">no change given</span>';
@@ -222,17 +236,27 @@ function stories(day){
     var src=[],mr=/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,y;while((y=mr.exec(body))){if(!src.some(function(s){return s.u===y[2];}))src.push({l:y[1],u:y[2]});}
     out.push({h:head,rest:rest||clip(stripMd(noCites(fact)),220),why:clip(stripMd(noCites(why)).replace(/^why it matters[^:]*:\s*/i,''),260),src:src.slice(0,2)});}
   return out;}
+var SENT={positive:'up',negative:'dn',watch:'acc',neutral:'flat'};
+function tags(s){var t='';if(s.sentiment)t+='<span class="chip '+(SENT[s.sentiment]||'flat')+'">'+esc(s.sentiment)+'</span>';if(s.tag)t+='<span class="chip flat">'+esc(s.tag)+'</span>';return t;}
 function srcLine(src){if(!src||!src.length)return '';return '<p class="by">Source: '+src.map(function(s){return '<a href="'+esc(s.u)+'" target="_blank" rel="noopener noreferrer">'+esc(s.l)+'</a>';}).join(', ')+'</p>';}
 
 function rulesSummary(day){
   var r=rules(day);if(!ok(r))return null;
-  if(day.rules&&day.rules.length)return {lead:'',items:day.rules.map(function(x){return (x.issuer?x.issuer+' · ':'')+(x.ref?x.ref+' · ':'')+x.title;}),teach:''};
+  var t0=r.content.match(/^##\s+[^\n]*Daily Teaching[^\n]*$/m),teach0=t0?cleanHead(t0[0].replace(/^##\s+/,'')).replace(/^Daily Teaching\s*[—–-]\s*/,''):'';
+  if(day.rules&&day.rules.length)return {lead:'',rules:day.rules,items:[],teach:teach0};
   var c=r.content,sec=c.match(/##\s+[^\n]*New Regulatory Updates[^\n]*\n([\s\S]*?)(?=\n##\s|$)/i),lead='',items=[];
   if(sec){var paras=sec[1].split(/\n\s*\n/).map(function(p){return p.trim();}).filter(function(p){return p&&!/^#|^\||^---/.test(p);});
     lead=paras[0]?clip(stripMd(noCites(paras[0])),280):'';
     (sec[1].match(/^###\s+.+$/gm)||[]).forEach(function(h){items.push(cleanHead(h.replace(/^###\s+/,'')));});}
   var t=c.match(/^##\s+[^\n]*Daily Teaching[^\n]*$/m);var teach=t?cleanHead(t[0].replace(/^##\s+/,'')).replace(/^Daily Teaching\s*[—–-]\s*/,''):'';
   return {lead:lead,items:items.slice(0,4),teach:teach};}
+
+var RTAG={NEW_REG:'New',AMENDMENT:'Amendment',CONSULTATION:'Consultation',CLARIFICATION:'Clarification'};
+function ruleRow(x){
+  var m=[];if(x.issuer)m.push(esc(x.issuer));if(x.ref)m.push('<span class="num">'+esc(x.ref)+'</span>');if(x.date)m.push('dated '+esc(dm(x.date)+' '+x.date.slice(0,4)));
+  if(x.effective)m.push('effective '+esc(dm(x.effective)));
+  return '<div class="rule"><div class="tagrow">'+(x.tag?'<span class="chip acc">'+esc(RTAG[x.tag]||x.tag)+'</span>':'')+(x.applies_to_mfl?'<span class="chip up">Applies to MFL</span>':'')+'</div>'+
+    '<b>'+esc(x.title||'')+'</b><div class="m">'+m.join(' · ')+' · '+(x.url?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">circular<span class="sr"> (opens in new tab)</span></a>':'source not linked')+'</div></div>';}
 
 /* ---------------- theme + install ---------------- */
 var ICON={sun:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>',
@@ -301,7 +325,7 @@ function viewToday(day){
   var h=header(day,day.id===M.days[0].id?'Today\u2019s Brief':shortDay(day.id))+pills(day,'');
   var main='',side='';
   if(day.podcast)main+='<div data-st><button type="button" class="audio g press" id="audioBtn" aria-pressed="false"><span class="play">'+ICON.play+'</span><span><b>Morning audio brief</b><span>Read aloud on this phone · '+filedN(day)+' of '+dueN(day)+' desks filed</span></span><span class="wave" aria-hidden="true">'+[8,14,10,18,12,20,9,15,11,7,13].map(function(x){return '<s style="height:'+x+'px"></s>';}).join('')+'</span></button></div>';
-  if(top){main+='<article class="g card hero" data-st aria-labelledby="h-top"><div class="kick">Top story · News desk</div><h2 id="h-top">'+esc(top.h)+'</h2>'+(top.rest?'<p>'+esc(top.rest)+'</p>':'')+
+  if(top){main+='<article class="g card hero" data-st aria-labelledby="h-top"><div class="tagrow"><span class="kick">Top story · News desk</span>'+tags(top)+'</div><h2 id="h-top">'+esc(top.h)+'</h2>'+(top.rest?'<p>'+esc(top.rest)+'</p>':'')+
     (top.why?'<p class="why"><b>Why it matters for MFL:</b> '+esc(top.why)+'</p>':'')+srcLine(top.src).replace('class="by"','class="by" style="margin-top:12px;font-size:13px;color:var(--ink3)"')+
     '<div class="kpis num" role="list"><div role="listitem"><small>Desks</small><b>'+filedN(day)+'/'+dueN(day)+'</b></div><div role="listitem"><small>Read</small><b>'+mins(words)+'m</b></div><div role="listitem"><small>Sources</small><b>'+srcCount+'</b></div><div role="listitem"><small>Key nos</small><b>'+(k.core_found||0)+'/'+(k.core_total||11)+'</b></div></div>'+
     '<a class="cta press" href="#/'+day.id+'/read/01-daily-watch">Read the news desk <span aria-hidden="true">→</span></a></article>';}
@@ -317,12 +341,12 @@ function viewToday(day){
   main+=flowsBlock(day);
   /* more stories */
   if(st.length>1)main+='<section aria-labelledby="h-more"><div class="sec" data-st><h2 id="h-more">Also in the news</h2></div>'+st.slice(1,4).map(function(s,i){
-    return '<a class="story g press" data-st href="#/'+day.id+'/read/01-daily-watch"><div class="t">Urgent · '+(i+2)+(s.tag?' · '+esc(s.tag):'')+'</div><h3>'+esc(s.h)+'</h3>'+(s.rest?'<p>'+esc(clip(s.rest,200))+'</p>':'')+'</a>';}).join('')+'</section>';
+    return '<a class="story g press" data-st href="#/'+day.id+'/read/01-daily-watch"><div class="tagrow"><span class="t">Urgent · '+(i+2)+'</span>'+tags(s)+'</div><h3>'+esc(s.h)+'</h3>'+(s.rest?'<p>'+esc(clip(s.rest,200))+'</p>':'')+(s.src&&s.src.length?'<p class="by" style="font-size:12.5px;color:var(--ink3);margin-top:6px">Source: '+s.src.map(function(x){return esc(x.l);}).join(', ')+'</p>':'')+'</a>';}).join('')+'</section>';
   /* side column */
   side+=watchlist(day);
   var rs=rulesSummary(day);
   side+='<section aria-labelledby="h-rules"><div class="sec" data-st><h2 id="h-rules">Rules desk</h2><span class="aside">RBI · SEBI · IBBI</span></div><div class="g card" data-st>'+
-    (rs?((rs.lead?'<p style="color:var(--ink2);font-size:15px">'+esc(rs.lead)+'</p>':'')+(rs.items.length?'<div style="display:grid;gap:8px;margin-top:12px">'+rs.items.map(function(x){return '<div class="rl">'+esc(x)+'</div>';}).join('')+'</div>':'')+
+    (rs?((rs.lead?'<p style="color:var(--ink2);font-size:15px">'+esc(rs.lead)+'</p>':'')+(rs.rules?'<div>'+rs.rules.map(ruleRow).join('')+'</div>':'')+(rs.items.length?'<div style="display:grid;gap:8px;margin-top:12px">'+rs.items.map(function(x){return '<div class="rl">'+esc(x)+'</div>';}).join('')+'</div>':'')+
       (rs.teach?'<p class="why" style="margin-top:14px"><b>Today\u2019s lesson:</b> '+esc(rs.teach)+'</p>':'')+'<a class="cta ghost press" href="#/'+day.id+'/read/02-regulation">Read the rules desk <span aria-hidden="true">→</span></a>')
       :'<p>'+(rr&&rr.expected?'The rules desk did not arrive today.':'No rules report for this day.')+'</p>')+'</div></section>';
   side+='<section aria-labelledby="h-desks"><div class="sec" data-st><h2 id="h-desks">Desks</h2><span class="aside">filed by NBFC Guru</span></div><div class="g flush list" data-st>'+
@@ -414,5 +438,28 @@ loadData().then(route).catch(function(err){
   APP.setAttribute('aria-busy','false');
   APP.innerHTML='<div class="g card empty" style="margin-top:60px"><h2>Could not load the brief</h2><p>'+(navigator.onLine===false?'You are offline and no edition is saved on this device yet.':'The data file did not load. Try again in a minute.')+'</p><a class="cta press" href="">Retry</a></div>';
   console.error(err);});
-if('serviceWorker' in navigator&&location.protocol!=='file:')window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});
+function tbw(){var t=document.getElementById('tabbar');document.documentElement.style.setProperty('--tbw',(t.offsetWidth+28)+'px');}
+tbw();window.addEventListener('resize',tbw);if(document.fonts)document.fonts.ready.then(tbw);
+
+/* "New edition available": a new service worker took over, or the data on the server is newer than what is on screen */
+function showUpdate(){
+  if($('#upd'))return;var d=document.createElement('div');d.id='upd';d.className='upd g';d.setAttribute('role','status');
+  d.innerHTML='<span>New edition available</span><button type="button" class="go">Refresh</button><button type="button" class="x" aria-label="Dismiss">×</button>';
+  d.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.classList.contains('go'))location.reload();else d.remove();});
+  document.body.appendChild(d);
+  if(d.animate&&!RM.matches)d.animate([{opacity:0,transform:'translate(-50%,16px)'},{opacity:1,transform:'translate(-50%,0)'}],{duration:SPRINGS.Snappy.ms,easing:SPRINGS.Snappy.easing});}
+function probe(){
+  if(!M.generated||document.visibilityState==='hidden'||navigator.onLine===false)return;
+  headGenerated().then(function(g){if(g&&g>M.generated)showUpdate();}).catch(function(){});}
+window.__nbfcProbe=probe;window.__nbfcShowUpdate=showUpdate;
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')probe();});
+window.addEventListener('online',probe);setInterval(probe,10*60*1000);
+
+if('serviceWorker' in navigator&&location.protocol!=='file:')window.addEventListener('load',function(){
+  var had=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){if(had)showUpdate();had=true;});
+  navigator.serviceWorker.register('/sw.js').then(function(reg){
+    document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')reg.update().catch(function(){});});
+  }).catch(function(){});
+  setTimeout(probe,4000);});
 })();

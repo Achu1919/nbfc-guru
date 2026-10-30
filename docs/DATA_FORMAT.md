@@ -2,8 +2,8 @@
 
 The app reads data in this order:
 
-1. `data/latest.json`, but only when it has `"schema_version": 1` and `"primary": true`. You can also force it for testing with `?src=json`.
-2. Otherwise `data.js` (`window.BRIEFING = {...}`), which is what `publish.py` writes today. **For now, data.js is the primary source.**
+1. `data/latest.json`, but only when it has `"schema_version": 1` and its `generated` is the same as (or newer than) the `generated` at the top of `data.js`. The app reads just the first 256 bytes of `data.js` (an HTTP Range request) to check. You can force JSON for testing with `?src=json`, or force data.js with `?src=legacy`.
+2. Otherwise `data.js` (`window.BRIEFING = {...}`), which is what `publish.py` writes today. **data.js remains the source of truth.** Until `data/` is committed, every visit falls back to it.
 
 Nothing about NBFC Guru's inputs changes:
 
@@ -18,7 +18,7 @@ Nothing about NBFC Guru's inputs changes:
 | `data/YYYY-MM-DD.json` | One full day. Same shape as a `data.js` `days[]` entry. |
 | `data/latest.json` | `{schema_version:1, generated, primary, latest, days:[index…], series, today:<full day>}` |
 
-To switch the app to JSON, run `NBFC_JSON_PRIMARY=1 python3 publish.py` and commit `data/` **in the same commit as `data.js`**. If `data/` is stale and `primary` is true, the app would show an old edition.
+To get the faster JSON path, commit `data/` along with `data.js` after each `python3 publish.py`. data/latest.json is about 19 KB compressed; data.js is about 1.1 MB. Because of the `generated` check, a stale or forgotten `data/` folder just falls back to data.js and never shows an old edition. The `primary` field (`NBFC_JSON_PRIMARY=1`) is still written for information, but the app no longer needs it.
 
 ## Day object (data.js `days[]` entry = `data/YYYY-MM-DD.json`)
 
