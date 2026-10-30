@@ -1,13 +1,12 @@
 <!doctype html>
-<html lang="en-IN" data-theme="auto">
+<html lang="en-IN" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Today's Brief · NBFC Guru</title>
 <meta name="description" content="Daily NBFC news, rules and market numbers, filed by NBFC Guru at 7:00 AM IST.">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#eef0f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#070a14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F6F7F9">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/favicon-64.png" type="image/png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -15,34 +14,35 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap">
 <script>
-/* theme before first paint: saved choice, else the system setting */
-try{var t=localStorage.getItem('nbfc-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}
+/* theme before first paint: two states only. Saved choice, else dark when the device prefers dark, else light. */
+(function(){var t;try{t=localStorage.getItem('nbfc-theme');}catch(e){}
+if(t!=='light'&&t!=='dark')t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+document.documentElement.dataset.theme=t;var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='dark'?'#0E0F12':'#F6F7F9';})();
 </script>
 <link rel="stylesheet" href="/app.css">
 <script src="/app.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-<!-- edge refraction for the fixed glass bars (Chromium only, see app.js "refract"); everywhere else plain blur -->
-<svg class="defs" width="0" height="0" aria-hidden="true" focusable="false"><filter id="lgx" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">
-<feImage href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3ClinearGradient id='a'%3E%3Cstop offset='0' stop-color='%23ff8080'/%3E%3Cstop offset='.14' stop-color='%23808080'/%3E%3Cstop offset='.86' stop-color='%23808080'/%3E%3Cstop offset='1' stop-color='%23008080'/%3E%3C/linearGradient%3E%3Crect width='100' height='100' fill='url(%23a)'/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="ma"/>
-<feDisplacementMap in="SourceGraphic" in2="ma" scale="16" xChannelSelector="R" yChannelSelector="G" result="d1"/>
-<feImage href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3ClinearGradient id='b' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%2380ff80'/%3E%3Cstop offset='.3' stop-color='%23808080'/%3E%3Cstop offset='.7' stop-color='%23808080'/%3E%3Cstop offset='1' stop-color='%23800080'/%3E%3C/linearGradient%3E%3Crect width='100' height='100' fill='url(%23b)'/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="mb"/>
-<feDisplacementMap in="d1" in2="mb" scale="12" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
-<div class="aur" id="aur" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="tp-fade" aria-hidden="true"></div>
+<header class="tp" id="tp">
+  <div class="tp-l">
+    <a class="tp-a" id="tpA" href="#/" style="color:inherit;text-decoration:none"><b>NBFC Guru</b><span id="tpE">Daily NBFC brief</span></a>
+    <div class="tp-b" id="tpB" aria-hidden="true"><b id="cbT"></b><span id="cbS"></span></div>
+  </div>
+  <div class="tp-r"><button class="ic press" id="installBtn" type="button" aria-label="Install app" hidden></button><button class="ic press" id="themeBtn" type="button" aria-label="Dark theme" aria-pressed="false"></button></div>
+</header>
 <main id="main" tabindex="-1">
   <div class="wrap" id="app" aria-busy="true">
     <div class="boot" role="status"><div class="g sk sk-h"></div><div class="g sk sk-c"></div><div class="g sk sk-t"></div><span class="sr">Loading today's brief…</span></div>
   </div>
 </main>
-<nav class="tabbar g" id="tabbar" aria-label="Sections">
+<nav class="tabbar" id="tabbar" aria-label="Sections">
   <a href="#/" data-tab="today">Today</a>
   <a href="#/read" data-tab="read">Read</a>
   <a href="#/markets" data-tab="markets">Markets</a>
   <a href="#/archive" data-tab="archive">Archive</a>
 </nav>
-<aside class="cbar" id="cbar" aria-label="Page summary" inert><div class="cb-t"><b id="cbT">NBFC Guru</b><span id="cbS"></span></div><button class="ic sm press" id="cbTheme" type="button" aria-label="Theme"></button></aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <noscript><div style="padding:24px;max-width:40em;line-height:1.55">This brief needs JavaScript. Without it you can still read the raw files on this site: the <a href="/regulatory-log.md">regulatory log</a>, the <a href="/KEY-NUMBERS.md">key-numbers guide</a>, and each day's reports at <code>/days/YYYY-MM-DD/01-daily-watch.md</code> and <code>/days/YYYY-MM-DD/02-regulation.md</code>.</div></noscript>
 </body>
