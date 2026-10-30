@@ -112,7 +112,7 @@ For a gold lender the payout is the product: cash or a bank credit within minute
 
 ### Recent Changes
 - The **31 Jul 2026** Directions repealed the earlier NBFC IT-framework and IT-governance instructions (para 155). Actions under the old rules stay valid (para 156). This repo first listed the circular in its **22 Aug** report; this is the first full teaching on it.
-- **Reading across, not a new rule:** CERT-In and CSIRT-Fin's **9 Oct** advisory on disbursement-API abuse, and the **29 Oct** ET/Moneycontrol report of about ₹300 cr in losses with ~150 complaints, mostly at NBFCs with turnover of ₹1,000 cr or less. ([Moneycontrol](https://www.moneycontrol.com/news/business/rs-300-crore-stolen-from-small-nbfcs-in-cyberattacks-officials-flag-jamtara-style-fraud-risk-14063062.html))
+- **Reading across, not a new rule:** CERT-In's **9 Oct** advisory on disbursement-API abuse, and the **29 Oct** ET/Moneycontrol report of about ₹300 cr in losses with ~150 complaints, mostly at NBFCs with turnover of ₹1,000 cr or less. ([Moneycontrol](https://www.moneycontrol.com/news/business/rs-300-crore-stolen-from-small-nbfcs-in-cyberattacks-officials-flag-jamtara-style-fraud-risk-14063062.html))
 
 ### Muthoot Fincorp Context
 - **Scope.** MFL is Middle Layer, so all of Chapter V applies: board-level ITSC, independent CISO, quarterly cyber briefings, half-yearly VA and DR drills, and the six-hour DAKSH clock. Muthoot Microfin is a separate NBFC and is assessed on its own layer.

@@ -1,0 +1,21 @@
+Somebody walked off with about three hundred crore rupees from India's small NBFCs in two months, and they didn't need to break into a single loan system to do it.
+
+Morning, Achu. It's Friday, the thirtieth of October.
+
+The Economic Times story, picked up by Moneycontrol yesterday, talks about roughly a hundred and fifty complaints. Most of the victims are lenders with turnover of about a thousand crore or less. One Delhi company apparently lost seven and a half crore, and then got hit again for another seven crore and change a few days later. The trick is simple, and that's the uncomfortable part. Attackers steal the keys a lender uses to talk to its payment gateway or partner bank, and then they call the payout API from machines the system already trusts. KYC never runs. Neither does the sanction check.
+
+CERT-In flagged this exact pattern on the ninth of October. That ties in with today's teaching, which is RBI's new cyber and technology directions from July. We're Middle Layer, so we get the strictest chapter. That means a CISO who doesn't report to IT and doesn't carry business targets, a vulnerability scan every six months, a pen test every year, and the one I'd remember: if something goes wrong, RBI hears about it on DAKSH within six hours. For a gold lender, money moving fast is what customers come to us for. It's also the bit that's exposed. It'd be worth asking whether anyone in finance looks at payouts by hour and channel each day. That's the cheapest early warning there is.
+
+Our NCD is doing fine. Tranche One reached one point six seven times by five yesterday evening, up from one point four five the day before. HNIs are past two times and retail is at one point four two. That's roughly three hundred and thirty-four crore of the five hundred we're allowed to keep, with six days to go before it closes on the fifth.
+
+Overnight, US inflation came in hot. September PCE prices rose half a percent, and the futures market now gives about an eighty-three percent chance the Fed hikes in December. Gold didn't like that. Spot was a touch over four thousand dollars this morning, down most of a percent, and MCX was around one lakh forty-two thousand for ten grams. A softer gold price makes our loan-to-value headroom thinner, so keep an eye on it.
+
+Funny thing is, gold-loan stocks led yesterday's rally anyway. Manappuram closed up four and a half percent, and Muthoot Finance, the listed peer, not us, was up a bit over four. The Sensex added about one and a quarter percent.
+
+The day's ugliest chart was Equitas. P N Vasudevan resigned as MD and CEO over what he called a perceived conflict of interest, because his daughter co-promotes a housing finance company. The stock dropped twenty percent to about fifty-two rupees. That was on the same day the bank reported a big profit jump. It shows how much the market prices in the founder's name.
+
+Since it's Friday, a quick word on EV lending. Hero's electric volumes nearly doubled last quarter. Shriram says it's now putting out about three hundred and fifty crore a month in EV loans. The two-wheeler borrower is our customer too, so that's worth watching.
+
+Two things today. The calamity-relief return goes up on CIMS today, even if it's a nil return. And LIC Housing reports later.
+
+That's it. Have a good weekend, Achu.
