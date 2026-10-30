@@ -42,7 +42,8 @@ To get the faster JSON path, commit `data/` along with `data.js` after each `pyt
       "dir": "up" | "down" | null,
       "asof": "2026-10-29", "asof_label": "29 Oct 2026", "basis": "close",
       "source": {"label": "NSE index closes", "url": "https://..."},   // REQUIRED for display
-      "origin": "block"
+      "origin": "block",
+      "value_num": 22936.75              // OPTIONAL number | null, see below
     }],
     "watchlist": [{"name": "NCD Tranche I | subscription", "value": "1.67× …", "asof": "...", "asof_label": "...", "source": {"label": "...", "url": "..."}}]
   }
@@ -59,7 +60,8 @@ Item keys:
 ## `latest.json` extras
 
 - `days[]` is a light index: `id`, `label`, `weekday`, `is_monday`, `due`, `filed`, `podcast`, `core_found`, and `reports[{key, section, title, missing, expected, words, sources}]`. Full days are fetched from `data/<id>.json`.
-- `series` is `{ "<item key>": { "YYYY-MM-DD": number | null } }` for the last 30 editions. `null` means that day's report did not state the figure. **Values are never carried forward.** Sparklines draw a gap there.
+- `series` is `{ "<item key>": { "YYYY-MM-DD": number | null } }` for the last 30 editions. `null` means that day's report did not state the figure (or stated it ambiguously, see `value_num`). **Values are never carried forward.** Sparklines draw a gap there.
+- Each series point comes from the item's `value_num` when the item has that field, **even when it is `null`**. Only when `value_num` is absent does the exporter (and the app, on the data.js path) fall back to parsing the first number out of `value`.
 
 ## Optional richer fields (NBFC Guru may add any of these; the app uses them when present)
 
@@ -71,7 +73,7 @@ Put them in an optional sidecar, `days/YYYY-MM-DD/structured.json`. The exporter
     "title": "MFL's Tranche I NCD reached 1.67× on Thursday.",
     "dek": "HNI demand is above 2.3× …",
     "why": "Why it matters for MFL …",
-    "sentiment": "positive" | "negative" | "neutral" | "watch",   // per-story tag
+    "sentiment": "positive" | "negative" | "neutral" | "watch",   // FROM MFL'S POINT OF VIEW (see below)
     "tag": "MFL" | "Peer" | "Regulation" | "Market" | "Macro",
     "sources": [{"label": "Chittorgarh", "url": "https://..."}]   // per-story sources (≥1)
   }],
@@ -80,14 +82,29 @@ Put them in an optional sidecar, `days/YYYY-MM-DD/structured.json`. The exporter
     "ref": "RBI/2026-27/112 DoR.FIN.REC.45/03.10.001/2026-27",   // circular number
     "date": "2026-10-29",                                         // circular date
     "title": "...", "tag": "NEW_REG" | "AMENDMENT" | "CONSULTATION" | "CLARIFICATION",
-    "effective": "2026-11-01" | null, "applies_to_mfl": true,
+    "effective": "2026-11-01" | null,
+    "applies_to_mfl": true | false | "unclear",
     "url": "https://rbi.org.in/..."
   }],
+  "rules_note": "RBI, SEBI and IBBI sites checked 06:40 IST; nothing new for NBFCs.",   // optional, day-level
   "items_sources": {                  // per-item multiple sources, keyed by item key
     "nifty": [{"label": "NSE", "url": "https://..."}, {"label": "BusinessLine", "url": "https://..."}]
+  },
+  "items_value_num": {                // per-item clean number, keyed by item key -> becomes item.value_num
+    "nifty": 22936.75,
+    "fii": null                       // stated, but ambiguous (e.g. provisional vs final): no sparkline point
   }
 }
 ```
+
+Field notes:
+
+- **`sentiment` is always from Muthoot Fincorp's (MFL's) point of view.** It is not a market or sector view. A peer's bad quarter can be `positive` for MFL. The app labels the chip "positive for MFL" and gives it a tooltip saying the same.
+- **`value_num`** must be a plain JSON number, or `null` when the figure is ambiguous (a range, provisional or final not stated, unit unclear). Never guess or round a figure into it. The exporter turns anything that is not a finite number (strings, booleans) into `null`. If you leave the key out, the old parsing of `value` is used.
+- **`rules: []`** (an empty list) means "checked, nothing new". The Rules desk card then shows **"No new NBFC circulars today"** plus `rules_note` if one is given. If you leave `rules` out, the app falls back to parsing `02-regulation.md` as before.
+- **`applies_to_mfl`**: `true` shows a green "Applies to MFL" chip, `false` a neutral "Not for MFL" chip, and `"unclear"` a neutral "MFL impact unclear" chip.
+
+Partial days: NBFC Guru commits each desk separately (news, then rules, then the podcast). In between, `publish.py` marks a missing desk `missing: true, expected: true`. The app shows such a desk as **"Not filed yet"** on the current IST date and **"Did not arrive"** on older dates. Weekly analysis on a non-Monday shows "Not due today". `tests/test_export.py` checks this case, and also that Monday's `03-weekly-analysis.md` passes through unchanged.
 
 Rules for every field:
 

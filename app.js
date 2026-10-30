@@ -144,11 +144,13 @@ var JOBS={'01-daily-watch':{tab:'News',name:'News desk',when:'7:00 AM'},'02-regu
 
 var M={source:null,generated:null,days:[],byId:{},series:{}};
 function num(v){if(v==null)return null;var s=String(v).replace(/[−–]/g,'-').replace(/,/g,'');var m=s.match(/[-+]?\d+(?:\.\d+)?/);return m?parseFloat(m[0]):null;}
+/* value_num (number|null) from NBFC Guru wins, even when null (= ambiguous, never guessed); else parse value */
+function numOf(it){if(it&&Object.prototype.hasOwnProperty.call(it,'value_num'))return typeof it.value_num==='number'&&isFinite(it.value_num)?it.value_num:null;return num(it&&it.value);}
 function buildSeries(days){ /* oldest -> newest; a day without the figure is a gap (null), never carried forward */
   var s={},asc=days.slice().sort(function(a,b){return a.id<b.id?-1:1;});
   Object.keys(FULL).forEach(function(k){s[k]=[];});
   asc.forEach(function(d){var have={};((d.key_numbers||{}).items||[]).forEach(function(it){have[it.key]=it;});
-    Object.keys(s).forEach(function(k){s[k].push({d:d.id,v:have[k]?num(have[k].value):null});});});
+    Object.keys(s).forEach(function(k){s[k].push({d:d.id,v:have[k]?numOf(have[k]):null});});});
   return s;}
 function index(days){M.days=days.slice().sort(function(a,b){return a.id<b.id?1:-1;});M.byId={};M.days.forEach(function(d){M.byId[d.id]=d;});}
 function fromLegacy(B){
@@ -190,6 +192,13 @@ function news(day){return rep(day,'01-daily-watch');}
 function rules(day){return rep(day,'02-regulation');}
 function rep(day,key){return (day.reports||[]).filter(function(r){return r.key===key;})[0];}
 function ok(r){return r&&!r.missing&&r.content!==undefined;}
+/* the IST calendar day; desks still missing on it are "not filed yet", on older days they "did not arrive" (?today= for tests) */
+function todayIST(){var q=location.search.match(/[?&]today=(\d{4}-\d{2}-\d{2})/);return q?q[1]:new Date(Date.now()+19800000).toISOString().slice(0,10);}
+function live(day){return day&&day.id===todayIST();}
+function missState(day,r){var j=JOBS[r.key]||{when:r.when||''};
+  if(!r.expected)return {t:'Not due today',s:'Not due today \u00b7 '+j.when,x:'This job only files on Mondays.',c:'nd'};
+  if(live(day))return {t:'Not filed yet',s:'Not filed yet \u00b7 due '+j.when,x:'The '+j.when+' job has not filed yet today. This page updates when it does.',c:'wait'};
+  return {t:'Did not arrive',s:'Did not arrive \u00b7 due '+j.when,x:'The '+j.when+' job did not leave a file.',c:'miss'};}
 function filedN(day){return (day.reports||[]).filter(function(r){return !r.missing;}).length;}
 function dueN(day){return (day.reports||[]).filter(function(r){return r.expected;}).length;}
 function kn(day){return day.key_numbers||{items:[],watchlist:[],core_total:11,core_found:0};}
@@ -237,13 +246,14 @@ function stories(day){
     out.push({h:head,rest:rest||clip(stripMd(noCites(fact)),220),why:clip(stripMd(noCites(why)).replace(/^why it matters[^:]*:\s*/i,''),260),src:src.slice(0,2)});}
   return out;}
 var SENT={positive:'up',negative:'dn',watch:'acc',neutral:'flat'};
-function tags(s){var t='';if(s.sentiment)t+='<span class="chip '+(SENT[s.sentiment]||'flat')+'">'+esc(s.sentiment)+'</span>';if(s.tag)t+='<span class="chip flat">'+esc(s.tag)+'</span>';return t;}
+var SENT_T='Sentiment is from Muthoot Fincorp\u2019s (MFL\u2019s) point of view';
+function tags(s){var t='';if(s.sentiment)t+='<span class="chip '+(SENT[s.sentiment]||'flat')+'" title="'+SENT_T+'"><span class="sr">'+SENT_T+': </span>'+esc(s.sentiment)+' for MFL</span>';if(s.tag)t+='<span class="chip flat">'+esc(s.tag)+'</span>';return t;}
 function srcLine(src){if(!src||!src.length)return '';return '<p class="by">Source: '+src.map(function(s){return '<a href="'+esc(s.u)+'" target="_blank" rel="noopener noreferrer">'+esc(s.l)+'</a>';}).join(', ')+'</p>';}
 
 function rulesSummary(day){
   var r=rules(day);if(!ok(r))return null;
   var t0=r.content.match(/^##\s+[^\n]*Daily Teaching[^\n]*$/m),teach0=t0?cleanHead(t0[0].replace(/^##\s+/,'')).replace(/^Daily Teaching\s*[—–-]\s*/,''):'';
-  if(day.rules&&day.rules.length)return {lead:'',rules:day.rules,items:[],teach:teach0};
+  if(Array.isArray(day.rules))return {lead:'',rules:day.rules,items:[],teach:teach0,note:day.rules_note||''};
   var c=r.content,sec=c.match(/##\s+[^\n]*New Regulatory Updates[^\n]*\n([\s\S]*?)(?=\n##\s|$)/i),lead='',items=[];
   if(sec){var paras=sec[1].split(/\n\s*\n/).map(function(p){return p.trim();}).filter(function(p){return p&&!/^#|^\||^---/.test(p);});
     lead=paras[0]?clip(stripMd(noCites(paras[0])),280):'';
@@ -252,10 +262,11 @@ function rulesSummary(day){
   return {lead:lead,items:items.slice(0,4),teach:teach};}
 
 var RTAG={NEW_REG:'New',AMENDMENT:'Amendment',CONSULTATION:'Consultation',CLARIFICATION:'Clarification'};
+function mflChip(v){if(v===true)return '<span class="chip up">Applies to MFL</span>';if(v==='unclear')return '<span class="chip flat" title="NBFC Guru could not yet tell whether this applies to Muthoot Fincorp">MFL impact unclear</span>';if(v===false)return '<span class="chip flat">Not for MFL</span>';return '';}
 function ruleRow(x){
   var m=[];if(x.issuer)m.push(esc(x.issuer));if(x.ref)m.push('<span class="num">'+esc(x.ref)+'</span>');if(x.date)m.push('dated '+esc(dm(x.date)+' '+x.date.slice(0,4)));
   if(x.effective)m.push('effective '+esc(dm(x.effective)));
-  return '<div class="rule"><div class="tagrow">'+(x.tag?'<span class="chip acc">'+esc(RTAG[x.tag]||x.tag)+'</span>':'')+(x.applies_to_mfl?'<span class="chip up">Applies to MFL</span>':'')+'</div>'+
+  return '<div class="rule"><div class="tagrow">'+(x.tag?'<span class="chip acc">'+esc(RTAG[x.tag]||x.tag)+'</span>':'')+mflChip(x.applies_to_mfl)+'</div>'+
     '<b>'+esc(x.title||'')+'</b><div class="m">'+m.join(' · ')+' · '+(x.url?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">circular<span class="sr"> (opens in new tab)</span></a>':'source not linked')+'</div></div>';}
 
 /* ---------------- theme + install ---------------- */
@@ -325,11 +336,12 @@ function viewToday(day){
   var h=header(day,day.id===M.days[0].id?'Today\u2019s Brief':shortDay(day.id))+pills(day,'');
   var main='',side='';
   if(day.podcast)main+='<div data-st><button type="button" class="audio g press" id="audioBtn" aria-pressed="false"><span class="play">'+ICON.play+'</span><span><b>Morning audio brief</b><span>Read aloud on this phone · '+filedN(day)+' of '+dueN(day)+' desks filed</span></span><span class="wave" aria-hidden="true">'+[8,14,10,18,12,20,9,15,11,7,13].map(function(x){return '<s style="height:'+x+'px"></s>';}).join('')+'</span></button></div>';
+  else if(live(day))main+='<div data-st><div class="audio g off" role="note"><span class="play">'+ICON.play+'</span><span><b>Morning audio brief</b><span>Audio script not filed yet today</span></span></div></div>';
   if(top){main+='<article class="g card hero" data-st aria-labelledby="h-top"><div class="tagrow"><span class="kick">Top story · News desk</span>'+tags(top)+'</div><h2 id="h-top">'+esc(top.h)+'</h2>'+(top.rest?'<p>'+esc(top.rest)+'</p>':'')+
     (top.why?'<p class="why"><b>Why it matters for MFL:</b> '+esc(top.why)+'</p>':'')+srcLine(top.src).replace('class="by"','class="by" style="margin-top:12px;font-size:13px;color:var(--ink3)"')+
     '<div class="kpis num" role="list"><div role="listitem"><small>Desks</small><b>'+filedN(day)+'/'+dueN(day)+'</b></div><div role="listitem"><small>Read</small><b>'+mins(words)+'m</b></div><div role="listitem"><small>Sources</small><b>'+srcCount+'</b></div><div role="listitem"><small>Key nos</small><b>'+(k.core_found||0)+'/'+(k.core_total||11)+'</b></div></div>'+
     '<a class="cta press" href="#/'+day.id+'/read/01-daily-watch">Read the news desk <span aria-hidden="true">→</span></a></article>';}
-  else main+='<div class="g card empty" data-st><h2>The news desk did not arrive</h2><p>The 7:00 AM job left no file for '+esc(day.label)+'.</p></div>';
+  else main+=live(day)&&nr&&nr.missing?'<div class="g card empty" data-st><h2>The news desk has not filed yet</h2><p>The 7:00 AM job has not filed for '+esc(day.label)+' yet. This page offers a refresh when it does.</p></div>':'<div class="g card empty" data-st><h2>The news desk did not arrive</h2><p>The 7:00 AM job left no file for '+esc(day.label)+'.</p></div>';
   /* markets carousel */
   var tiles=MARKET_ORDER.map(function(k2){var it=item(day,k2);if(!it)return '';var d=dirOf(it);
     return '<a class="tile g press" href="#/'+day.id+'/markets"><div class="n">'+esc(SHORT[k2])+'</div><div class="v num">'+esc(it.value)+'</div>'+chg(it)+spark(k2,day.id,124,34,d)+'<span class="src">'+(it.asof?dm(it.asof):'as-of n/s')+' · '+esc((it.source&&it.source.label)||'no source')+'</span></a>';}).join('');
@@ -346,12 +358,12 @@ function viewToday(day){
   side+=watchlist(day);
   var rs=rulesSummary(day);
   side+='<section aria-labelledby="h-rules"><div class="sec" data-st><h2 id="h-rules">Rules desk</h2><span class="aside">RBI · SEBI · IBBI</span></div><div class="g card" data-st>'+
-    (rs?((rs.lead?'<p style="color:var(--ink2);font-size:15px">'+esc(rs.lead)+'</p>':'')+(rs.rules?'<div>'+rs.rules.map(ruleRow).join('')+'</div>':'')+(rs.items.length?'<div style="display:grid;gap:8px;margin-top:12px">'+rs.items.map(function(x){return '<div class="rl">'+esc(x)+'</div>';}).join('')+'</div>':'')+
+    (rs?((rs.lead?'<p style="color:var(--ink2);font-size:15px">'+esc(rs.lead)+'</p>':'')+(rs.rules?(rs.rules.length?'<div>'+rs.rules.map(ruleRow).join('')+'</div>':'<div class="rule none"><b>No new NBFC circulars today</b>'+(rs.note?'<div class="m">'+esc(rs.note)+'</div>':'')+'</div>')+(rs.rules.length&&rs.note?'<p class="note" style="margin-top:8px">'+esc(rs.note)+'</p>':''):'')+(rs.items.length?'<div style="display:grid;gap:8px;margin-top:12px">'+rs.items.map(function(x){return '<div class="rl">'+esc(x)+'</div>';}).join('')+'</div>':'')+
       (rs.teach?'<p class="why" style="margin-top:14px"><b>Today\u2019s lesson:</b> '+esc(rs.teach)+'</p>':'')+'<a class="cta ghost press" href="#/'+day.id+'/read/02-regulation">Read the rules desk <span aria-hidden="true">→</span></a>')
-      :'<p>'+(rr&&rr.expected?'The rules desk did not arrive today.':'No rules report for this day.')+'</p>')+'</div></section>';
+      :'<p>'+(rr&&rr.expected?(live(day)?'The rules desk has not filed yet today (due '+JOBS['02-regulation'].when+' IST).':'The rules desk did not arrive for this day.'):'No rules report for this day.')+'</p>')+'</div></section>';
   side+='<section aria-labelledby="h-desks"><div class="sec" data-st><h2 id="h-desks">Desks</h2><span class="aside">filed by NBFC Guru</span></div><div class="g flush list" data-st>'+
-    (day.reports||[]).map(function(r){var j=JOBS[r.key]||{name:r.kind||r.key,when:r.when||''};var cls=r.missing?(r.expected?'miss':'nd'):'';
-      var sub=r.missing?(r.expected?'Did not arrive · due '+j.when:'Not due today · '+j.when):mins(wordsOf(r))+' min read · '+(r.sources||0)+' sources · '+j.when;
+    (day.reports||[]).map(function(r){var j=JOBS[r.key]||{name:r.kind||r.key,when:r.when||''};var ms=r.missing?missState(day,r):null,cls=ms?ms.c:'';
+      var sub=ms?ms.s:mins(wordsOf(r))+' min read · '+(r.sources||0)+' sources · '+j.when;
       return '<a class="desk press '+cls+'" href="#/'+day.id+'/read/'+r.key+'"><span class="dot" aria-hidden="true"></span><span class="bd"><b>'+esc(j.name)+'</b><span>'+esc(sub)+'</span></span><span class="chev" aria-hidden="true">›</span></a>';}).join('')+'</div></section>';
   return h+'<div class="cols"><div>'+main+'</div><div class="side">'+side+'</div></div>'+foot();}
 
@@ -368,9 +380,9 @@ function viewRead(day,key){
   var r=rep(day,key)||(day.reports||[]).filter(ok)[0]||(day.reports||[])[0];if(!r)return header(day,'Read')+'<div class="g card empty"><h2>Nothing filed</h2></div>';
   key=r.key;
   var seg='<nav class="seg g" aria-label="Desk" data-st>'+(day.reports||[]).map(function(x){var j=JOBS[x.key]||{tab:x.section};
-    return '<a class="press'+(x.missing?' off':'')+'" href="#/'+day.id+'/read/'+x.key+'"'+(x.key===key?' aria-current="true"':'')+'>'+esc(j.tab)+(x.missing?'<span class="sr"> (not filed)</span>':'')+'</a>';}).join('')+'</nav>';
+    return '<a class="press'+(x.missing?' off':'')+'" href="#/'+day.id+'/read/'+x.key+'"'+(x.key===key?' aria-current="true"':'')+'>'+esc(j.tab)+(x.missing?'<span class="sr"> ('+missState(day,x).t.toLowerCase()+')</span>':'')+'</a>';}).join('')+'</nav>';
   var j=JOBS[key]||{name:r.kind,when:r.when};
-  if(r.missing)return header(day,j.tab||'Read')+pills(day,'/read/'+key)+seg+'<div class="g card empty" data-st><h2>'+esc(r.title)+'</h2><p>'+esc(r.excerpt)+'</p></div>'+foot();
+  if(r.missing)return header(day,j.tab||'Read')+pills(day,'/read/'+key)+seg+'<div class="g card empty" data-st><h2>'+esc(missState(day,r).t)+'</h2><p>'+esc(missState(day,r).x)+'</p></div>'+foot();
   var toc=[],src=[],body=markdown(r.content,toc,src),list=sourceList(src);
   var side='';
   if(key==='01-daily-watch'){
@@ -389,7 +401,7 @@ function viewArchive(){
   M.days.forEach(function(d){var d0=dt(d.id),mo=d0.toLocaleString('en-IN',{month:'long',year:'numeric'});
     if(mo!==cur){if(cur)out+='</div>';out+='<h2 class="mh" data-st>'+esc(mo)+'</h2><div class="g flush list arch" data-st>';cur=mo;}
     out+='<a class="row press" href="#/'+d.id+'"><span class="d"><b>'+esc(d.label)+'</b><span>'+filedN(d)+' of '+dueN(d)+' desks'+(d.podcast?' · audio script':'')+'</span></span><span class="badges">'+
-      (d.reports||[]).map(function(r){var j=JOBS[r.key]||{tab:r.section};return '<i class="'+(r.missing?(r.expected?'x':'n'):'')+'" title="'+esc(j.tab+': '+(r.missing?(r.expected?'did not arrive':'not due'):'filed'))+'">'+esc(j.tab[0])+'</i>';}).join('')+'</span></a>';});
+      (d.reports||[]).map(function(r){var j=JOBS[r.key]||{tab:r.section};return '<i class="'+(r.missing?(r.expected?(live(d)?'w':'x'):'n'):'')+'" title="'+esc(j.tab+': '+(r.missing?missState(d,r).t.toLowerCase():'filed'))+'">'+esc(j.tab[0])+'</i>';}).join('')+'</span></a>';});
   return h+out+(cur?'</div>':'')+foot();}
 function foot(){var g=M.generated?new Date(M.generated):null;
   return '<footer class="foot">Filed by NBFC Guru, 7:00 AM IST. Every figure links to the source its report used; anything a report did not state is shown as missing. Muthoot Finance appears only as a listed peer, never as MFL.'+

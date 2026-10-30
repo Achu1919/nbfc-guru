@@ -6,8 +6,9 @@ primary source; this only ADDS:
   data/YYYY-MM-DD.json    one full day (same shape as a data.js days[] entry)
 
 Optional richer fields: if a day folder contains structured.json (written by NBFC Guru when it can),
-its "stories", "rules" and "items_sources" keys are merged into that day. Nothing is ever copied
-from one day to another: a figure missing on a day is null in the series.
+its "stories", "rules", "rules_note", "items_sources" and "items_value_num" keys are merged into that
+day. Nothing is ever copied from one day to another: a figure missing on a day is null in the series.
+Report content is passed through untouched, so every data/<id>.json report equals its data.js entry.
 """
 from __future__ import annotations
 
@@ -30,6 +31,20 @@ def _num(value):
     return float(m.group(0)) if m else None
 
 
+def _clean_num(v):
+    """value_num must be a real number or null. Anything else (bool, string, NaN) becomes null: never guessed."""
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or v != v or v in (float("inf"), float("-inf")):
+        return None
+    return v
+
+
+def series_value(item: dict):
+    """An explicit value_num wins, even when it is null (the figure was ambiguous). Otherwise parse value."""
+    if "value_num" in item:
+        return _clean_num(item["value_num"])
+    return _num(item.get("value"))
+
+
 def _merge_structured(day: dict) -> dict:
     side = ROOT / "days" / day["id"] / "structured.json"
     if not side.exists():
@@ -43,10 +58,21 @@ def _merge_structured(day: dict) -> dict:
     for key in ("stories", "rules"):
         if isinstance(extra.get(key), list):
             out[key] = extra[key]
+    if isinstance(extra.get("rules_note"), str) and extra["rules_note"].strip():
+        out["rules_note"] = extra["rules_note"].strip()
     srcs = extra.get("items_sources")
-    if isinstance(srcs, dict) and out.get("key_numbers"):
+    nums = extra.get("items_value_num")
+    if out.get("key_numbers") and (isinstance(srcs, dict) or isinstance(nums, dict)):
         kn = dict(out["key_numbers"])
-        kn["items"] = [dict(it, sources=srcs[it["key"]]) if it.get("key") in srcs else it for it in kn.get("items", [])]
+        items = []
+        for it in kn.get("items", []):
+            it = dict(it)
+            if isinstance(srcs, dict) and it.get("key") in srcs:
+                it["sources"] = srcs[it["key"]]
+            if isinstance(nums, dict) and it.get("key") in nums:
+                it["value_num"] = _clean_num(nums[it["key"]])
+            items.append(it)
+        kn["items"] = items
         out["key_numbers"] = kn
     return out
 
@@ -79,7 +105,7 @@ def export(payload: dict) -> None:
         series[k] = {}
         for i in recent:
             hit = [it for it in (by_id[i].get("key_numbers") or {}).get("items", []) if it["key"] == k]
-            series[k][i] = _num(hit[0]["value"]) if hit else None
+            series[k][i] = series_value(hit[0]) if hit else None
     latest = {
         "schema_version": SCHEMA_VERSION,
         "generated": payload["generated"],
