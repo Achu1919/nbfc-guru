@@ -744,19 +744,22 @@ loadData().then(route).catch(function(err){
 var LGX=(function(){try{var b=navigator.userAgentData&&navigator.userAgentData.brands;
   return !!(b&&b.some(function(x){return /Chromium/.test(x.brand);}))&&!matchMedia('(prefers-reduced-transparency: reduce)').matches&&!matchMedia('(forced-colors: active)').matches;}catch(e){return false;}})();
 /* band = lens width at the rim (px); scale stays < ~1.3x band so the edge compresses the backdrop without folding it into a mirror image */
-var LGO={tp:{band:26,scale:36,ca:.05,blur:.5,soft:5,sat:1.6,mag:0},nav:{band:30,scale:42,ca:.05,blur:.5,soft:4,sat:1.6,mag:0},ind:{band:16,scale:14,ca:.04,blur:0,sat:1.3,mag:.08}};
+/* band = rim width (px) that bends; scale < ~1.3x band so it compresses without folding; ca gives ~0.5px R/B split at the very edge */
+var LGO={tp:{band:13,scale:16,ca:.03,blur:.4,soft:12,sat:1.5,mag:0,lift:{light:[.26,.74],dark:[.22,.06]}},
+  nav:{band:14,scale:17,ca:.03,blur:.4,soft:12,sat:1.5,mag:0,lift:{light:[.26,.74],dark:[.22,.06]}},
+  ind:{band:12,scale:14,ca:.02,blur:0,soft:0,sat:1.3,mag:.03,lift:{light:[.30,.72],dark:[.45,.14]}}};
 var LGS=null;
 function lgMap(w,h,o){var c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d'),im=g.createImageData(w,h),d=im.data,
   r=Math.min(w,h)/2,cx=w/2,cy=h/2,hx=cx-r,hy=cy-r,band=Math.min(o.band,r);
   for(var j=0;j<h;j++)for(var i=0;i<w;i++){var px=i+.5-cx,py=j+.5-cy,qx=Math.abs(px)-hx,qy=Math.abs(py)-hy,nx,ny,sd,L;
     if(qx>0&&qy>0){L=Math.sqrt(qx*qx+qy*qy);sd=L-r;nx=qx/L;ny=qy/L;}else if(qx>qy){sd=qx-r;nx=1;ny=0;}else{sd=qy-r;nx=0;ny=1;}
     if(px<0)nx=-nx;if(py<0)ny=-ny;
-    var t=1+sd/band;t=t<0?0:t>1?1:t;var f=t*t*(1.6-.6*t);   /* convex bevel: flat centre, steep rim */
+    var t=1+sd/band;t=t<0?0:t>1?1:t;var f=t*t*(3-2*t);   /* bevel confined to the outer rim band, smooth falloff, centre untouched */
     var dx=-nx*f-o.mag*px/cx,dy=-ny*f-o.mag*py/cy,k=(j*w+i)*4;
-    d[k]=128+dx*127;d[k+1]=128+dy*127;d[k+2]=t>.5?(t-.5)*510:0;d[k+3]=255;}   /* B = rim weight */
+    d[k]=128+dx*127;d[k+1]=128+dy*127;d[k+2]=t*255;d[k+3]=255;}   /* B = rim weight */
   g.putImageData(im,0,0);return c.toDataURL();}
 function lgSet(el,id,o){if(!LGX||!el||!o)return;var w=Math.round(el.offsetWidth),h=Math.round(el.offsetHeight);if(w<8||h<8)return;
-  if(el._lg===w+'x'+h)return;el._lg=w+'x'+h;
+  var key=w+'x'+h+theme();if(el._lg===key)return;el._lg=key;
   if(!LGS){LGS=document.createElementNS('http://www.w3.org/2000/svg','svg');LGS.setAttribute('aria-hidden','true');LGS.setAttribute('width','0');LGS.setAttribute('height','0');
     LGS.style.cssText='position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';document.body.appendChild(LGS);}
   var S=o.scale,ch=function(n,sc,m){return '<feDisplacementMap in="bl" in2="map" scale="'+sc.toFixed(1)+'" xChannelSelector="R" yChannelSelector="G" result="d'+n+'"/>'+
@@ -773,11 +776,15 @@ function lgSet(el,id,o){if(!LGX||!el||!o)return;var w=Math.round(el.offsetWidth)
       '<feGaussianBlur in="SourceGraphic" stdDeviation="'+o.soft+'" result="sb"/>'+
       '<feDisplacementMap in="sb" in2="map" scale="'+S.toFixed(1)+'" xChannelSelector="R" yChannelSelector="G" result="sd"/>'+
       '<feComposite in="rim" in2="sd" operator="over" result="rgb2"/>':'<feOffset in="rgb" result="rgb2"/>')+
-    '<feColorMatrix in="rgb2" type="saturate" values="'+o.sat+'"/></filter>';
+    '<feColorMatrix in="rgb2" type="saturate" values="'+o.sat+'" result="sat"/>'+
+    /* luminance lift: compress the backdrop into a bright band (light) or a dim band (dark) so the glass never turns to murk
+       and the labels on top keep >= 4.5:1 whatever passes underneath */
+    (function(){var L=o.lift[theme()],a=L[0].toFixed(3),b=L[1].toFixed(3);return '<feComponentTransfer in="sat"><feFuncR type="linear" slope="'+a+'" intercept="'+b+'"/><feFuncG type="linear" slope="'+a+'" intercept="'+b+'"/><feFuncB type="linear" slope="'+a+'" intercept="'+b+'"/></feComponentTransfer>';})()+'</filter>';
   var old=LGS.querySelector('#'+id);if(old)old.remove();LGS.insertAdjacentHTML('beforeend',f);
   var v='url(#'+id+')';el.style.webkitBackdropFilter='none';el.style.backdropFilter='none';void el.offsetWidth;el.style.webkitBackdropFilter=v;el.style.backdropFilter=v;}
 function lgAll(){var tl=$('#tp>.lg'),nl=$('#tabbar>.lg');lgSet(tl,'lg-tp',LGO.tp);if(nl&&nl.offsetWidth)lgSet(nl,'lg-nav',LGO.nav);if(TS.ind)lgSet(TS.ind,'lg-ind',LGO.ind);}
 if(LGX){document.documentElement.classList.add('lgx');lgAll();
+  new MutationObserver(function(){lgAll();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
   if(window.ResizeObserver){var lgRO=new ResizeObserver(function(){lgAll();});lgRO.observe(document.getElementById('tp'));lgRO.observe(document.getElementById('tabbar'));}}
 
 /* ---------------- top pill: one header that morphs ----------------

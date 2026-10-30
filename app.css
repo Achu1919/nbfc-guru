@@ -1,7 +1,7 @@
 /* NBFC Guru · v6 "Ink" design system. Tokens are documented in docs/DESIGN_TOKENS.md.
    One neutral scale, one accent (ink blue), semantic colours tuned per theme. Two themes only: light, dark. */
-:root{--glass-tint:rgba(255,255,255,.62);--glass-tint-x:rgba(255,255,255,.5);--glass-spec:rgba(255,255,255,.55);--glass-rim:rgba(255,255,255,.95);--glass-rim2:rgba(255,255,255,.45);--glass-line:rgba(23,25,30,.10);
-  --glass-shadow:0 10px 30px -8px rgba(23,25,30,.18),0 2px 6px rgba(23,25,30,.06);--blob:rgba(23,25,30,.06);--blob-x:rgba(255,255,255,.16);--blob-shadow:0 2px 8px rgba(23,25,30,.10);
+:root{--glass-tint:rgba(255,255,255,.62);--glass-tint-x:rgba(255,255,255,.6);--glass-spec:rgba(255,255,255,.55);--glass-rim:rgba(255,255,255,.95);--glass-rim2:rgba(255,255,255,.45);--glass-line:rgba(23,25,30,.10);
+  --glass-shadow:0 10px 30px -8px rgba(23,25,30,.18),0 2px 6px rgba(23,25,30,.06);--blob:rgba(23,25,30,.06);--blob-x:rgba(255,255,255,.45);--blob-shadow:0 2px 8px rgba(23,25,30,.10);
   /* neutrals */
   --n0:#FFFFFF;--n50:#F6F7F9;--n100:#EEF0F3;--n200:#E1E4E9;--n300:#C9CDD5;--n400:#9EA3AE;--n500:#6B717E;
   --n600:#535965;--n700:#3C414B;--n800:#272A31;--n850:#1E2026;--n900:#17191E;--n950:#0E0F12;
@@ -30,8 +30,8 @@
   --cover:var(--n900);--cover-wk:var(--a700);--cover-ink:#F3F4F6;--cover-ink2:rgba(243,244,246,.68);--cover-line:rgba(255,255,255,.16);--cover-edge:transparent;
   --dot-n:var(--a600);--dot-r:var(--warn);--dot-w:var(--n700);--dot-a:var(--up);
 }
-:root[data-theme=dark]{--glass-tint:rgba(30,32,38,.66);--glass-tint-x:rgba(30,32,38,.55);--glass-spec:rgba(255,255,255,.10);--glass-rim:rgba(255,255,255,.26);--glass-rim2:rgba(255,255,255,.08);--glass-line:rgba(255,255,255,.08);
-  --glass-shadow:0 12px 32px -8px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.3);--blob:rgba(255,255,255,.09);--blob-x:rgba(255,255,255,.07);--blob-shadow:0 2px 10px rgba(0,0,0,.35);color-scheme:dark;
+:root[data-theme=dark]{--glass-tint:rgba(30,32,38,.66);--glass-tint-x:rgba(28,30,36,.5);--glass-spec:rgba(255,255,255,.10);--glass-rim:rgba(255,255,255,.26);--glass-rim2:rgba(255,255,255,.08);--glass-line:rgba(255,255,255,.08);
+  --glass-shadow:0 12px 32px -8px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.3);--blob:rgba(255,255,255,.09);--blob-x:rgba(255,255,255,.10);--blob-shadow:0 2px 10px rgba(0,0,0,.35);color-scheme:dark;
   --bg:var(--n950);--surface-1:#16181C;--surface-2:#1C1E23;--surface-3:#25282E;
   --chrome:rgba(26,28,33,.86);--chrome-solid:#1A1C21;
   --text-1:#ECEDF0;--text-2:#A8ADB7;--text-3:#878D98;
@@ -359,10 +359,10 @@ html.lgx .lg{background:var(--glass-tint-x)}
 .tabbar a:hover{color:var(--text-1)}
 .tabbar a[aria-current=page]{color:var(--text-1);font-weight:650}
 .tabbar a[aria-current=page] svg{stroke-width:2}
-/* the blob: under the labels as a tinted lozenge (fallback); above them as a refracting lens on Chromium */
+/* the blob sits between the nav glass and the labels: labels and icons always paint above every glass layer, undistorted */
 .tabbar .ind{z-index:0;transform-origin:50% 50%;background:var(--blob);box-shadow:var(--blob-shadow);will-change:transform}
 .tabbar .ind::after{box-shadow:inset 0 1px 0 var(--glass-rim),inset 0 -1px 0 var(--glass-rim2),inset 0 0 0 .5px var(--glass-line)}
-html.lgx .tabbar .ind{z-index:2;background:var(--blob-x)}
+html.lgx .tabbar .ind{background:var(--blob-x)}
 @media (max-width:370px){.tabbar a span{font-size:13.5px}}
 .ind{position:absolute;left:0;top:0;z-index:0;border-radius:var(--r-pill);transform-origin:0 50%;pointer-events:none;opacity:0}
 

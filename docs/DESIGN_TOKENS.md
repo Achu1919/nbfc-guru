@@ -78,6 +78,16 @@ Dark theme uses deeper, lower-opacity shadows plus a 1px light edge on covers.
   page title fades out under it before the compact title, date and key stat fade in.
 - Bottom nav: same glass, with a neutral `--surface-2` active indicator and the active label at weight 650 in `--text-1`.
 
+## Liquid glass (v7b corrections)
+
+- Z-order: `.lg` glass (z -1) < blob `.ind` (z 0) < labels/icons (z 1) on every engine. Labels are never inside any backdrop filter, so they stay crisp and are never clipped or colour-fringed.
+- Bend lives only in the outer rim: band 13px (pill) / 14px (nav) / 12px (blob), smoothstep falloff `t²(3−2t)`, scale 16/17/14 (< 1.3×band, monotonic, no fold). Centre is undisplaced.
+- Chroma: `ca` .03 (.02 blob) → ≈0.25–0.3px per side, edge only.
+- Centre frost: 12px soft blur, masked to the flat centre by the map's B channel (rim weight = t).
+- Luminance lift (feComponentTransfer, rebuilt on theme change): pill/nav light slope .26 + .74, dark .22 + .06; blob light .30 + .72, dark .45 + .14. Measured label contrast ≥ 5.0:1 over dark covers, the black news-desk button and body text in both themes.
+- Tints: `--glass-tint-x` light rgba(255,255,255,.6), dark rgba(28,30,36,.5); `--blob-x` light .45, dark .10. Blob magnification .03 (backdrop only).
+- Filter region = element box in userSpaceOnUse; displacement map is a capsule SDF of the exact size, so the frosted surface is one rounded capsule.
+
 ## Liquid glass (v7)
 
 Only three elements are glass: the top pill (`#tp>.lg`), the bottom nav (`#tabbar>.lg`) and the nav blob (`#tabbar>.ind`). Cards stay lightly frosted.
