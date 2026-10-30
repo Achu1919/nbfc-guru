@@ -247,3 +247,11 @@ if __name__ == "__main__":
         encoding="utf-8",
     )
     print(f"Published {len(payload['days'])} day(s) to {OUT}")
+    # Additive: also write data/latest.json + data/YYYY-MM-DD.json for the redesigned app.
+    # data.js above is unchanged; a failure here never stops publishing.
+    try:
+        from export_json import export
+
+        export(payload)
+    except Exception as exc:  # noqa: BLE001
+        print(f"JSON export skipped: {exc}")

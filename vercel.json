@@ -8,6 +8,28 @@
   ],
   "routes": [
     {
+      "src": "/sw.js",
+      "headers": {
+        "cache-control": "no-cache",
+        "service-worker-allowed": "/"
+      },
+      "continue": true
+    },
+    {
+      "src": "/manifest.webmanifest",
+      "headers": {
+        "content-type": "application/manifest+json"
+      },
+      "continue": true
+    },
+    {
+      "src": "/(data\\.js|data/.*\\.json)",
+      "headers": {
+        "cache-control": "public, max-age=0, must-revalidate"
+      },
+      "continue": true
+    },
+    {
       "src": "/",
       "dest": "/index.html"
     },
