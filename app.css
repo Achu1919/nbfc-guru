@@ -8,6 +8,9 @@
   --shadow:0 10px 30px rgba(40,50,90,.12),0 1px 2px rgba(40,50,90,.08);
   --inset:inset 0 1px 0 rgba(255,255,255,.6);
   --blob-o:.85;
+  --nav-bg:rgba(255,255,255,.66);--nav-solid:#fbfcff;--nav-edge:rgba(255,255,255,.85);--nav-hi:rgba(255,255,255,.95);--nav-lo:rgba(20,30,60,.06);
+  --nav-line:rgba(20,30,60,.10);--nav-sh1:rgba(20,30,60,.10);--nav-sh2:rgba(20,30,60,.16);
+  --pill-sheen:rgba(255,255,255,.55);--pill-bg:rgba(37,99,235,.18);--pill-ink:#0f2f86;--pill-hi:rgba(255,255,255,.9);--pill-ring:rgba(37,99,235,.24);--pill-glow:rgba(37,99,235,.18);
   --r-xl:26px;--r-l:22px;--r-m:16px;--r-s:10px;
   --s1:8px;--s2:16px;--s3:24px;--s4:32px;--gut:16px;
   --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -21,6 +24,9 @@
     --hair:rgba(255,255,255,.08);--up:#3ddc84;--dn:#ff7b7b;--acc:#f3c769;--accbg:rgba(243,199,105,.14);
     --link:#9ab8ff;--focus:#9ab8ff;--on-ink:#0b0f1c;
     --shadow:0 12px 34px rgba(0,0,0,.45);--inset:inset 0 1px 0 rgba(255,255,255,.10);--blob-o:.36;
+    --nav-bg:rgba(20,26,46,.72);--nav-solid:#141a2e;--nav-edge:rgba(255,255,255,.14);--nav-hi:rgba(255,255,255,.18);--nav-lo:rgba(0,0,0,.25);
+    --nav-line:rgba(0,0,0,.4);--nav-sh1:rgba(0,0,0,.35);--nav-sh2:rgba(0,0,0,.55);
+    --pill-sheen:rgba(255,255,255,.10);--pill-bg:rgba(120,155,255,.24);--pill-ink:#e6edff;--pill-hi:rgba(255,255,255,.22);--pill-ring:rgba(154,184,255,.38);--pill-glow:rgba(70,110,255,.25);
     color-scheme:dark;
   }
 }
@@ -30,6 +36,9 @@
   --hair:rgba(255,255,255,.08);--up:#3ddc84;--dn:#ff7b7b;--acc:#f3c769;--accbg:rgba(243,199,105,.14);
   --link:#9ab8ff;--focus:#9ab8ff;--on-ink:#0b0f1c;
   --shadow:0 12px 34px rgba(0,0,0,.45);--inset:inset 0 1px 0 rgba(255,255,255,.10);--blob-o:.36;
+  --nav-bg:rgba(20,26,46,.72);--nav-solid:#141a2e;--nav-edge:rgba(255,255,255,.14);--nav-hi:rgba(255,255,255,.18);--nav-lo:rgba(0,0,0,.25);
+  --nav-line:rgba(0,0,0,.4);--nav-sh1:rgba(0,0,0,.35);--nav-sh2:rgba(0,0,0,.55);
+  --pill-sheen:rgba(255,255,255,.10);--pill-bg:rgba(120,155,255,.24);--pill-ink:#e6edff;--pill-hi:rgba(255,255,255,.22);--pill-ring:rgba(154,184,255,.38);--pill-glow:rgba(70,110,255,.25);
   color-scheme:dark;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -191,7 +200,7 @@ h1{font-size:clamp(30px,8.4vw,40px);font-weight:800;letter-spacing:-.03em;line-h
 /* article */
 .seg{display:flex;gap:4px;padding:5px;border-radius:999px;margin-bottom:var(--s2);position:relative}
 .seg a{position:relative;z-index:1;transition:color .2s;flex:1;text-align:center;padding:9px 6px;border-radius:999px;font-size:14px;font-weight:650;color:var(--ink2);text-decoration:none;min-height:40px}
-.seg a[aria-current=true]{color:var(--on-ink)}
+.seg a[aria-current=true]{color:var(--pill-ink)}
 .seg a.off{opacity:.55}
 .art{padding:24px 20px}
 .art h1{font-size:clamp(26px,7vw,34px)}
@@ -248,7 +257,13 @@ h1{font-size:clamp(30px,8.4vw,40px);font-weight:800;letter-spacing:-.03em;line-h
 /* tab bar */
 .tabbar{isolation:isolate;position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:2px;padding:6px;border-radius:999px;z-index:20;width:max-content;max-width:calc(100vw - 20px)}
 .tabbar a{position:relative;z-index:1;padding:11px 16px;border-radius:999px;font-size:14.5px;font-weight:650;color:var(--ink);text-decoration:none;min-height:44px;display:flex;align-items:center;transition:background-color .2s,color .2s}
-.tabbar a[aria-current=page]{color:var(--on-ink)}
+.tabbar a[aria-current=page]{color:var(--pill-ink);font-weight:750}
+/* bottom nav: Liquid Glass capsule. Labels are --ink on >=66% white (light) / >=72% navy (dark) after a 26px blur,
+   so worst-case content behind (black text, red/green chips) still leaves >=4.5:1. */
+.tabbar.g{background:var(--nav-bg);-webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) saturate(180%);
+  border:1px solid var(--nav-edge);box-shadow:inset 0 1px 0 var(--nav-hi),inset 0 -1px 0 var(--nav-lo),0 0 0 .5px var(--nav-line),0 2px 6px var(--nav-sh1),0 12px 32px var(--nav-sh2)}
+.tabbar a{color:var(--ink)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.tabbar.g{background:var(--nav-solid)}}
 @media (max-width:370px){.tabbar a{padding:11px 12px;font-size:14px}}
 
 .foot{margin:28px 6px 12px;font-size:13px;color:var(--ink3);line-height:1.5}
@@ -274,24 +289,13 @@ h1{font-size:clamp(30px,8.4vw,40px);font-weight:800;letter-spacing:-.03em;line-h
   .md{max-width:44em}
 }
 /* sliding indicator (tab bar + Read desks); positioned by JS, moved with transform only */
-.ind{position:absolute;left:0;top:0;z-index:0;border-radius:999px;background:var(--ink);transform-origin:0 50%;pointer-events:none;opacity:0}
+.ind{position:absolute;left:0;top:0;z-index:0;border-radius:999px;transform-origin:0 50%;pointer-events:none;opacity:0;
+  background:linear-gradient(180deg,var(--pill-sheen),rgba(255,255,255,0) 70%),var(--pill-bg);
+  box-shadow:inset 0 1px 0 var(--pill-hi),inset 0 0 0 1px var(--pill-ring),0 2px 8px var(--pill-glow)}
 /* press feedback: 0.97, todo-app Quick spring */
 .press,.tabbar a,.seg a,.toc a,.srcs a,.cta,.ic,.upd button,.desk,.story,.tile,.pill{transition:transform .3s var(--ease-quick),background-color .2s,color .2s}
 .press:active,.tabbar a:active,.seg a:active,.toc a:active,.srcs a:active,.cta:active,.ic:active,.upd button:active{transform:scale(.97)}
-/* view transitions: directional slide + fade on the page, pinned chrome (tab bar, date strip, desk switch) */
-:root{--vt-dx:0px}
-:root[data-dir="1"]{--vt-dx:28px}:root[data-dir="-1"]{--vt-dx:-28px}
-html:not([data-vt]) .tabbar{view-transition-name:tabbar}
-html[data-pin]:not([data-vt]) .pills{view-transition-name:pills}
-html[data-pin]:not([data-vt]) .seg{view-transition-name:seg}
-::view-transition-group(*){animation-duration:240ms;animation-timing-function:var(--ease-smooth)}
-::view-transition-old(root){animation:vt-out 190ms cubic-bezier(.4,0,1,1) both}
-::view-transition-new(root){animation:vt-fade 210ms cubic-bezier(0,0,.2,1) 40ms both,vt-slide 260ms var(--ease-glide,var(--ease-smooth)) both}
-::view-transition-old(tabbar),::view-transition-new(tabbar),::view-transition-old(seg),::view-transition-new(seg){animation:none}
-::view-transition-old(tabbar),::view-transition-old(seg){display:none}
-@keyframes vt-out{to{opacity:0;transform:translateX(calc(var(--vt-dx)*-.6))}}
-@keyframes vt-fade{from{opacity:0}}
-@keyframes vt-slide{from{transform:translateX(var(--vt-dx))}}
+/* page switches are self-managed (app.js swapOut/cascade, transform+opacity); View Transitions only for the theme reveal */
 html[data-vt=theme]::view-transition-old(root),html[data-vt=theme]::view-transition-new(root){animation:none;mix-blend-mode:normal}
 html[data-vt=theme]::view-transition-old(root){z-index:0}html[data-vt=theme]::view-transition-new(root){z-index:1}
 /* no View Transitions: crossfade the colour vars on the surfaces that use them */

@@ -119,8 +119,13 @@ function cascade(root,launch){
   if(!root.animate)return;
   if(RM.matches){root.animate([{opacity:0},{opacity:1}],{duration:ENTRANCE.ReducedMs,easing:'ease-in-out'});return;}
   var rows=0,vh=window.innerHeight*1.15;
+  var sw=inSwap;
   root.querySelectorAll('[data-st]').forEach(function(el){
+    if(sw&&stat(el,sw.keepSeg))return;
     var r=el.getBoundingClientRect();if(r.top>vh)return;
+    if(sw){var i2=Math.min(rows++,ENTRANCE.MaxRows-1),d2=i2*ENTRANCE.StaggerMs,dx=sw.dir&&!sw.keepSeg?sw.dir*12:0;
+      el.animate([{transform:'translate('+dx+'px,8px)'},{transform:'none'}],{duration:SPRINGS.Rise.ms,delay:d2,easing:SPRINGS.Rise.easing,fill:'backwards'});
+      el.animate([{opacity:0},{opacity:1}],{duration:180,delay:d2,easing:'cubic-bezier(0,0,.2,1)',fill:'backwards'});return;}
     var head=el.dataset.st==='h',idx=head?0:Math.min(rows++,ENTRANCE.MaxRows-1);
     var delay=head?0:idx*ENTRANCE.StaggerMs,dist=head?(launch?-ENTRANCE.HeaderDropPx:0):(launch?ENTRANCE.RowRisePx:10);if(!dist)return;
     el.animate([{transform:'translateY('+dist+'px)'},{transform:'none'}],{duration:SPRINGS.Rise.ms+(launch?0:80),delay:delay,easing:SPRINGS.Rise.easing,fill:'backwards'});
@@ -460,7 +465,10 @@ function syncTabInd(anim){var tb=document.getElementById('tabbar');tabInd=placeI
 function syncSegInd(from){var seg=$('.seg');segInd=seg?placeInd(seg,seg.querySelector('a[aria-current=true]'),from):null;}
 function reInd(){syncTabInd(false);syncSegInd(null);fit();}
 /* scrollable tables get a fade edge only when they actually overflow */
-function fit(){document.querySelectorAll('.twrap.tscroll').forEach(function(w){w.classList.toggle('ov',w.scrollWidth>w.clientWidth+2);});}
+/* near=true: only tables on screen now (cheap during a swap); the rest are checked once the entrance has settled */
+var fitT;function fit(near){var vh=innerHeight*1.5;document.querySelectorAll('.twrap.tscroll').forEach(function(w){
+  if(near===true&&w.getBoundingClientRect().top>vh)return;w.classList.toggle('ov',w.scrollWidth>w.clientWidth+2);});
+  if(near===true){clearTimeout(fitT);fitT=setTimeout(fit,450);}}
 window.addEventListener('resize',reInd);
 /* warm the neighbouring editions so a date switch never waits on the network */
 function prefetch(id){var i=M.days.findIndex(function(d){return d.id===id;});
@@ -482,26 +490,42 @@ function route(){
     var html=S.view==='archive'?viewArchive():S.view==='markets'?viewMarkets(day):S.view==='read'?viewRead(day,S.key):viewToday(day);
     var changed=!first&&(pv!==S.view||pd!==S.day||pk!==S.key),dir=changed?dirFor(pv,pd,pk,S.view,S.day,S.key):0;
     var segFrom=pv==='read'&&S.view==='read'?segInd:null,de=document.documentElement;
+    var pre=null;
     function apply(){
-      APP.innerHTML=html;APP.setAttribute('aria-busy','false');
+      if(pre){APP.replaceChildren(document.importNode(pre.content,true));pre=null;}else APP.innerHTML=html;APP.setAttribute('aria-busy','false');
       document.title=(S.view==='today'?'Today\u2019s Brief':S.view[0].toUpperCase()+S.view.slice(1))+' · '+shortDay(day.id)+' · NBFC Guru';
       document.querySelectorAll('#tabbar a').forEach(function(a){var t=a.dataset.tab;
         a.href=t==='archive'?'#/archive':t==='today'?'#/'+day.id:'#/'+day.id+'/'+t;
         if(t===S.view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
       if(changed&&(pv!==S.view||pd!==S.day)){window.scrollTo(0,0);var hd=$('h1');if(hd){hd.setAttribute('tabindex','-1');hd.focus({preventScroll:true});}}
-      syncTabInd(!first);syncSegInd(segFrom);fit();
+      syncTabInd(!first);syncSegInd(segFrom);fit(true);
       var pc=$('.pill[aria-current=true]'),pl=pc&&pc.parentNode;
       if(pl&&pl.scrollTo)pl.scrollTo({left:Math.max(0,pc.offsetLeft-(pl.clientWidth-pc.offsetWidth)/2),behavior:first||RM.matches?'auto':'smooth'});
       cascade(APP,first);}
-    if(first||!changed||RM.matches||!document.startViewTransition){
+    if(first||!changed||RM.matches||!APP.animate){
       var wasFirst=first;apply();if(first)riseTabbar();first=false;prefetch(day.id);if(wasFirst)warm(day);return;}
-    de.dataset.dir=String(dir);
-    if(window.scrollY<160)de.dataset.pin='';else delete de.dataset.pin;
-    var vt=document.startViewTransition(apply);
-    vt.finished.finally(function(){if(my===seq){delete de.dataset.dir;delete de.dataset.pin;}});
+    /* sequential swap, never a crossfade: old content leaves (opacity 0, -4px, ~100 ms), then the new view
+       is written and rises in. Header, date chips and (Read -> Read) the desk tabs stay put. */
+    var keepSeg=pv==='read'&&S.view==='read';
+    /* parse the new view while the old one fades (compositor-only), so the swap itself is shorter */
+    pre=document.createElement('template');pre.innerHTML=html;
+    if(!outP)outP=swapOut(keepSeg).then(function(){outP=null;});
+    outP.then(function(){if(my!==seq)return;
+      APP.style.minHeight=APP.offsetHeight+'px';
+      inSwap={dir:dir,keepSeg:keepSeg};apply();inSwap=null;
+      clearTimeout(mhT);mhT=setTimeout(function(){if(my===seq)APP.style.minHeight='';},520);});
     prefetch(day.id);
   });}
-
+var outP=null,inSwap=null,mhT;
+function stat(el,keepSeg){return el.classList.contains('hd')||el.classList.contains('pills')||(keepSeg&&el.classList.contains('seg'));}
+function swapOut(keepSeg){
+  var vh=innerHeight,list=[];
+  APP.querySelectorAll('[data-st]').forEach(function(el){if(stat(el,keepSeg))return;
+    var r=el.getBoundingClientRect();if(r.bottom<0||r.top>vh)return;list.push(el);});
+  if(!list.length)return Promise.resolve();
+  var anims=list.map(function(el){var o=getComputedStyle(el).opacity;el.getAnimations().forEach(function(x){x.cancel();});
+    return el.animate([{opacity:o,transform:'none'},{opacity:0,transform:'translateY(-4px)'}],{duration:100,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'});});
+  return Promise.all(anims.map(function(x){return x.finished.catch(function(){});}));}
 APP.addEventListener('click',function(e){
   var t=e.target.closest('button,a[data-jump]');if(!t)return;
   if(t.id==='themeBtn'){themeReveal(t,{auto:'light',light:'dark',dark:'auto'}[theme()]);}
