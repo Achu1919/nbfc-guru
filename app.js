@@ -290,12 +290,15 @@ var ICON={sun:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="1
   play:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>',
   stop:'<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5"/></svg>'};
 function theme(){return document.documentElement.dataset.theme||'auto';}
-function themeBtn(){var t=theme(),next={auto:'light',light:'dark',dark:'auto'}[t],nm={auto:'Auto (follows system)',light:'Light',dark:'Dark'};
-  return '<button class="ic g press" id="themeBtn" type="button" aria-label="Theme: '+nm[t]+'. Switch to '+nm[next]+'">'+ICON[t==='auto'?'auto':t==='light'?'sun':'moon']+'</button>';}
+var TNM={auto:'Auto (follows system)',light:'Light',dark:'Dark'},TNEXT={auto:'light',light:'dark',dark:'auto'};
+function themeLabel(){var t=theme();return 'Theme: '+TNM[t]+'. Switch to '+TNM[TNEXT[t]];}
+function themeIcon(){var t=theme();return ICON[t==='auto'?'auto':t==='light'?'sun':'moon'];}
+function themeBtn(){return '<button class="ic gl press" id="themeBtn" type="button" aria-label="'+themeLabel()+'">'+themeIcon()+'</button>';}
+function syncCbTheme(){var b=document.getElementById('cbTheme');if(b){b.innerHTML=themeIcon();b.setAttribute('aria-label',themeLabel());}}
 function setTheme(t,quiet){document.documentElement.dataset.theme=t;try{t==='auto'?localStorage.removeItem('nbfc-theme'):localStorage.setItem('nbfc-theme',t);}catch(e){}
   var dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);
   document.querySelectorAll('meta[name=theme-color]').forEach(function(m){m.content=dark?'#070a14':'#eef0f7';});
-  var b=$('#themeBtn');if(b)b.outerHTML=themeBtn();if(!quiet)toast('Theme: '+t);}
+  var b=$('#themeBtn');if(b)b.outerHTML=themeBtn();syncCbTheme();if(!quiet)toast('Theme: '+t);}
 /* theme change: circular reveal from the toggle (todo-app ThemeReveal easing cubic-bezier(.2,0,0,1));
    without View Transitions a 250 ms colour crossfade; reduced motion: instant */
 function themeReveal(btn,t){var de=document.documentElement;
@@ -306,7 +309,7 @@ function themeReveal(btn,t){var de=document.documentElement;
   var vt=document.startViewTransition(function(){setTheme(t,true);});
   vt.ready.then(function(){de.animate({clipPath:['circle(0px at '+cx+'px '+cy+'px)','circle('+Math.ceil(R)+'px at '+cx+'px '+cy+'px)']},
     {duration:340,easing:'cubic-bezier(.2,0,0,1)',pseudoElement:'::view-transition-new(root)'});}).catch(function(){});
-  vt.finished.finally(function(){delete de.dataset.vt;var b=$('#themeBtn');if(b)b.focus({preventScroll:true});});}
+  vt.finished.finally(function(){delete de.dataset.vt;var b=btn.id==='cbTheme'?btn:$('#themeBtn');if(b)b.focus({preventScroll:true});});}
 var installEvt=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();installEvt=e;var b=$('#installBtn');if(b)b.hidden=false;});
 window.addEventListener('appinstalled',function(){installEvt=null;var b=$('#installBtn');if(b)b.hidden=true;toast('Installed');});
@@ -328,9 +331,29 @@ function toggleAudio(id,btn){
 
 /* ---------------- views ---------------- */
 var S={day:null,view:'today',key:null};
-function header(day,title){
-  return '<header class="hd" data-st="h"><div><div class="eyebrow">'+esc(day?day.label:'')+'</div><h1>'+esc(title)+'</h1></div>'+
-    '<div class="ctrls"><button class="ic g press" id="installBtn" type="button" aria-label="Install app"'+(installEvt?'':' hidden')+'>'+ICON.dl+'</button>'+themeBtn()+'</div></header>';}
+/* hero header: date eyebrow + controls, optional greeting, big title, status line. On scroll the title
+   shrinks/fades (transform+opacity) and the fixed compact bar (#cbar) takes over. */
+function greeting(){var h=new Date(Date.now()+19800000).getUTCHours();return h<4?'Hello':h<12?'Good morning':h<17?'Good afternoon':'Good evening';}
+function builtIST(){var g=String(M.generated||'').match(/T(\d{2}:\d{2})/);return g?g[1]:'';}
+function status(day){var p=[];if(live(day)&&builtIST())p.push('Updated '+builtIST()+' IST');p.push(filedN(day)+'/'+dueN(day)+' desks');return p.join(' \u00b7 ');}
+function header(day,title,o){o=o||{};
+  return '<header class="hd'+(o.hero?' big':'')+'" data-st="h"><div class="hd-row"><div class="eyebrow">'+(day&&live(day)?'<span class="ldot" aria-hidden="true"></span>':'')+esc(day?day.label:'')+'</div>'+
+    '<div class="ctrls"><button class="ic gl press" id="installBtn" type="button" aria-label="Install app"'+(installEvt?'':' hidden')+'>'+ICON.dl+'</button>'+themeBtn()+'</div></div>'+
+    (o.greet?'<p class="greet">'+esc(o.greet)+'</p>':'')+'<h1>'+esc(title)+'</h1>'+(o.sub?'<p class="hsub">'+o.sub+'</p>':'')+'</header>';}
+function pct(c){var m=String(c||'').match(/\(\s*([+\-\u2212\u2013]?\d[\d.,]*\s*%)\s*\)/);return m?m[1].replace(/\s+/g,''):String(c||'');}
+function hasChg(it){return it.change&&!/^[\u2014\u2013-]$/.test(String(it.change).trim());}
+var ARW={up:'\u25b2',dn:'\u25bc'};
+/* key-numbers ticker: only figures printed in this day's report; a missing item is left out */
+var TICK=['nifty','sensex','niftyfin','gold10g','goldspot','usdinr','brent','muthoot','manappuram','iifl','shriram','bajaj'];
+function ticker(day){
+  var its=TICK.map(function(k){var it=item(day,k);return it&&it.value?{k:k,it:it}:null;}).filter(Boolean);if(its.length<3)return '';
+  function li(x,dup){var d=dirOf(x.it),c=hasChg(x.it)?pct(x.it.change):'\u2014';
+    return '<li><a href="#/'+day.id+'/markets"'+(dup?' tabindex="-1"':'')+'><span class="tn">'+esc(SHORT[x.k])+'</span> <span class="tv num">'+esc(x.it.value)+'</span> <span class="tch num '+(d||'flat')+'">'+(ARW[d]?'<span aria-hidden="true">'+ARW[d]+'</span>':'')+esc(c)+'</span></a></li>';}
+  var a=its.map(function(x){return li(x,false);}).join(''),b=its.map(function(x){return li(x,true);}).join('');
+  return '<section class="tick" data-st aria-label="Key numbers from this edition\u2019s news report. Each opens Markets with its source."><div class="tk-vp"><div class="tk-track"><ul class="tk-list">'+a+'</ul><ul class="tk-list" aria-hidden="true">'+b+'</ul></div></div></section>';}
+function glance(day,st){if(!st.length)return '';
+  return '<section class="g card glance" data-st aria-labelledby="h-gl"><h2 id="h-gl" class="kick">'+(live(day)?'Today at a glance':'At a glance \u00b7 '+esc(shortDay(day.id)))+'</h2><ul>'+
+    st.slice(0,3).map(function(s){return '<li><a href="#/'+day.id+'/read/01-daily-watch">'+esc(s.h)+'</a>'+(s.src&&s.src[0]?' <span class="gsrc">'+srcA({label:s.src[0].l,url:s.src[0].u})+'</span>':'')+'</li>';}).join('')+'</ul></section>';}
 function pills(day,suffix){
   return '<nav class="pills" aria-label="Edition" data-st>'+M.days.slice(0,7).map(function(d){
     return '<a class="pill g press" href="#/'+d.id+(suffix||'')+'"'+(d.id===day.id?' aria-current="true"':'')+'>'+(d.id===M.days[0].id?'Today · ':'')+shortDay(d.id)+'</a>';}).join('')+
@@ -357,8 +380,11 @@ function viewToday(day){
   var st=stories(day),top=st[0],nr=news(day),rr=rules(day),k=kn(day);
   var srcCount=(day.reports||[]).reduce(function(a,r){return a+(r.sources||0);},0);
   var words=(day.reports||[]).filter(ok).reduce(function(a,r){return a+wordsOf(r);},0);
-  var h=header(day,day.id===M.days[0].id?'Today\u2019s Brief':shortDay(day.id))+pills(day,'');
+  var latest=day.id===M.days[0].id;
+  var h=header(day,latest?'Today\u2019s Brief':shortDay(day.id),{hero:true,greet:latest&&live(day)?greeting()+', Achu':latest?'Latest edition':'Edition of '+day.weekday,
+    sub:'<span class="st-dot '+(filedN(day)>=dueN(day)?'ok':live(day)?'wait':'miss')+'" aria-hidden="true"></span>'+esc(status(day))+(day.podcast?' \u00b7 audio script':'')})+pills(day,'');
   var main='',side='';
+  h+=ticker(day)+glance(day,st);
   if(day.podcast)main+='<div data-st><button type="button" class="audio g press" id="audioBtn" aria-pressed="false"><span class="play">'+ICON.play+'</span><span><b>Morning audio brief</b><span>Read aloud on this phone · '+filedN(day)+' of '+dueN(day)+' desks filed</span></span><span class="wave" aria-hidden="true">'+[8,14,10,18,12,20,9,15,11,7,13].map(function(x){return '<s style="height:'+x+'px"></s>';}).join('')+'</span></button></div>';
   else if(live(day))main+='<div data-st><div class="audio g off" role="note"><span class="play">'+ICON.play+'</span><span><b>Morning audio brief</b><span>Audio script not filed yet today</span></span></div></div>';
   if(top){main+='<article class="g card hero" data-st aria-labelledby="h-top"><div class="tagrow"><span class="kick">Top story · News desk</span>'+tags(top)+'</div><h2 id="h-top">'+esc(top.h)+'</h2>'+(top.rest?'<p>'+esc(top.rest)+'</p>':'')+
@@ -420,13 +446,94 @@ function viewRead(day,key){
     (toc.length?'<nav class="toc" aria-label="On this page">'+toc.map(function(t){return '<a href="#'+t.id+'" data-jump="'+t.id+'">'+esc(t.t)+'</a>';}).join('')+'</nav>':'')+
     '<div class="md">'+body+'</div></article><div class="side">'+side+'</div></div>'+foot();}
 
+/* ---------------- archive: month calendar + library shelf ---------------- */
+var ARCH={mo:null,x:null,y:0},MONL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var AV={n:'News',r:'Rules',w:'Weekly',a:'Audio script'};
+function avail(d){var a=[];(d.reports||[]).forEach(function(r){if(r.missing)return;var c={'01-daily-watch':'n','02-regulation':'r','03-weekly-analysis':'w'}[r.key];if(c)a.push(c);});if(d.podcast)a.push('a');return a;}
+function availTxt(d){var a=avail(d);return a.length?a.map(function(x){return AV[x];}).join(', '):'no desk filed';}
+function months(){var s={};M.days.forEach(function(d){s[d.id.slice(0,7)]=1;});return Object.keys(s).sort();} /* oldest first */
+function moName(mo){return MONL[+mo.slice(5,7)-1]+' '+mo.slice(0,4);}
+function p2(n){return (n<10?'0':'')+n;}
+function calGrid(mo){
+  var y=+mo.slice(0,4),m=+mo.slice(5,7)-1,n=new Date(y,m+1,0).getDate(),lead=(new Date(y,m,1).getDay()+6)%7,t=todayIST(),cells=[],focus=null;
+  for(var i=0;i<lead;i++)cells.push('<td role="gridcell"></td>');
+  for(var d=1;d<=n;d++){var id=mo+'-'+p2(d),ed=M.byId[id],lab=DOWS[new Date(y,m,d).getDay()]+' '+d+' '+MONL[m];
+    if(ed){focus=id;var a=avail(ed);
+      cells.push('<td role="gridcell"><a class="cd ed'+(id===t?' now':'')+'" href="#/'+id+'" data-cal-id="'+id+'" tabindex="-1"><span class="n">'+d+'</span><span class="dots" aria-hidden="true">'+a.map(function(x){return '<i class="d-'+x+'"></i>';}).join('')+'</span><span class="sr"> '+esc(lab)+': '+esc(availTxt(ed))+'</span></a></td>');}
+    else cells.push('<td role="gridcell"><span class="cd" tabindex="-1"><span class="n">'+d+'</span><span class="sr"> '+esc(lab)+': no edition</span></span></td>');}
+  while(cells.length%7)cells.push('<td role="gridcell"></td>');
+  var rows='';for(var r=0;r<cells.length;r+=7)rows+='<tr>'+cells.slice(r,r+7).join('')+'</tr>';
+  var html='<thead><tr>'+['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(function(w){return '<th scope="col" abbr="'+w+'"><span aria-hidden="true">'+w[0]+'</span><span class="sr">'+w+'</span></th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody>';
+  /* roving tabindex: the newest edition in the month takes the Tab stop */
+  return focus?html.replace('data-cal-id="'+focus+'" tabindex="-1"','data-cal-id="'+focus+'" tabindex="0"'):html.replace('class="cd" tabindex="-1"','class="cd" tabindex="0"');}
+function calHtml(mo){var ms=months(),i=ms.indexOf(mo);
+  return '<section class="g cal" data-st aria-labelledby="calT"><div class="cal-h"><button type="button" class="ic sm gl press" data-cal="-1" aria-label="Previous month"'+(i<=0?' disabled':'')+'><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg></button>'+
+    '<h2 id="calT" aria-live="polite">'+esc(moName(mo))+'</h2><button type="button" class="ic sm gl press" data-cal="1" aria-label="Next month"'+(i>=ms.length-1?' disabled':'')+'><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg></button></div>'+
+    '<div class="cal-vp"><table class="cal-g" role="grid" aria-labelledby="calT">'+calGrid(mo)+'</table></div>'+
+    '<ul class="legend" aria-label="Dot colours"><li><i class="d-n"></i>News</li><li><i class="d-r"></i>Rules</li><li><i class="d-w"></i>Weekly</li><li><i class="d-a"></i>Audio script</li></ul></section>';}
+var HUES=[214,172,352,28,266,142,198,8,46,322];
+function hsh(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
+function shelfHtml(){var asc=M.days.slice().reverse(),out='',cur='';
+  asc.forEach(function(d){var mo=d.id.slice(0,7),a=avail(d),wk=a.indexOf('w')>=0,h=hsh(d.id),dd=dt(d.id);
+    if(mo!==cur){if(cur)out+='</ul></div>';out+='<div class="smo" data-mo="'+mo+'"><h3 class="slbl">'+esc(MONL[+mo.slice(5,7)-1])+'<span> '+mo.slice(0,4)+'</span></h3><ul class="books">';cur=mo;}
+    out+='<li class="bk'+(wk?' wk':'')+(a.length?'':' none')+'" style="--hue:'+HUES[h%HUES.length]+';--bh:'+(150+h%22)+'px;--lt:'+(27+h%6)+'%"><a class="sp" href="#/'+d.id+'" data-book="'+d.id+'">'+
+      '<span class="sd" aria-hidden="true">'+DOWS[dd.getDay()]+'</span><span class="sn" aria-hidden="true">'+dd.getDate()+' '+MONS[dd.getMonth()]+'</span>'+(wk?'<span class="sw" aria-hidden="true">Weekly</span>':'')+
+      '<span class="sdots" aria-hidden="true">'+a.map(function(x){return '<i class="d-'+x+'"></i>';}).join('')+'</span><span class="sr">'+esc(d.label)+': '+esc(availTxt(d))+'</span></a></li>';});
+  return '<section class="lib" data-st aria-labelledby="h-lib"><div class="sec"><h2 id="h-lib">Library</h2><span class="aside">'+M.days.length+' editions \u00b7 swipe the shelf</span></div>'+
+    '<div class="g shelfbox"><div class="shelf" id="shelf"><div class="srow">'+out+(cur?'</ul></div>':'')+'</div></div></div></section>';}
 function viewArchive(){
-  var h=header(M.days[0],'Archive'),cur='',out='';
-  M.days.forEach(function(d){var d0=dt(d.id),mo=d0.toLocaleString('en-IN',{month:'long',year:'numeric'});
-    if(mo!==cur){if(cur)out+='</div>';out+='<h2 class="mh" data-st>'+esc(mo)+'</h2><div class="g flush list arch" data-st>';cur=mo;}
-    out+='<a class="row press" href="#/'+d.id+'"><span class="d"><b>'+esc(d.label)+'</b><span>'+filedN(d)+' of '+dueN(d)+' desks'+(d.podcast?' · audio script':'')+'</span></span><span class="badges">'+
-      (d.reports||[]).map(function(r){var j=JOBS[r.key]||{tab:r.section};return '<i class="'+(r.missing?(r.expected?(live(d)?'w':'x'):'n'):'')+'" title="'+esc(j.tab+': '+(r.missing?missState(d,r).t.toLowerCase():'filed'))+'">'+esc(j.tab[0])+'</i>';}).join('')+'</span></a>';});
-  return h+out+(cur?'</div>':'')+foot();}
+  var ms=months();if(!ARCH.mo||ms.indexOf(ARCH.mo)<0)ARCH.mo=ms[ms.length-1];
+  return header(M.days[0],'Archive',{sub:M.days.length+' editions since '+esc(dm(M.days[M.days.length-1].id))+' '+M.days[M.days.length-1].id.slice(0,4)})+calHtml(ARCH.mo)+shelfHtml()+foot();}
+/* month switch: grid slides (transform/opacity), the shelf scrolls to that month */
+function calGo(delta){var ms=months(),i=ms.indexOf(ARCH.mo)+delta;if(i<0||i>=ms.length)return;ARCH.mo=ms[i];
+  var g=$('.cal-g'),t=$('#calT'),bs=document.querySelectorAll('[data-cal]');if(!g)return;
+  t.textContent=moName(ARCH.mo);bs[0].disabled=i<=0;bs[1].disabled=i>=ms.length-1;
+  function swap(){g.innerHTML=calGrid(ARCH.mo);if(!RM.matches&&g.animate)g.animate([{transform:'translateX('+(delta*24)+'px)',opacity:0},{transform:'none',opacity:1}],{duration:SPRINGS.Quick.ms,easing:SPRINGS.Quick.easing});}
+  if(RM.matches||!g.animate)swap();else g.animate([{transform:'none',opacity:1},{transform:'translateX('+(-delta*24)+'px)',opacity:0}],{duration:110,easing:'cubic-bezier(.4,0,1,1)'}).finished.then(swap,swap);
+  shelfTo(ARCH.mo,true);}
+function shelfTo(mo,smooth){var sh=$('#shelf'),grp=sh&&sh.querySelector('.smo[data-mo="'+mo+'"]');if(!grp)return;
+  sh.scrollTo({left:Math.max(0,grp.offsetLeft-12),behavior:smooth&&!RM.matches?'smooth':'auto'});}
+function calKey(e){var c=e.target.closest('.cd');if(!c||!c.closest('.cal-g'))return;
+  var all=[].slice.call(document.querySelectorAll('.cal-g .cd')),i=all.indexOf(c),j=i;
+  switch(e.key){case 'ArrowLeft':j=i-1;break;case 'ArrowRight':j=i+1;break;case 'ArrowUp':j=i-7;break;case 'ArrowDown':j=i+7;break;
+    case 'Home':j=i-(i+((new Date(ARCH.mo+'-01T00:00:00').getDay()+6)%7))%7;break;case 'End':j=Math.min(all.length-1,i+6-(i+((new Date(ARCH.mo+'-01T00:00:00').getDay()+6)%7))%7);break;
+    case 'PageUp':e.preventDefault();calGo(-1);return;case 'PageDown':e.preventDefault();calGo(1);return;default:return;}
+  e.preventDefault();j=Math.max(0,Math.min(all.length-1,j));all.forEach(function(x){x.tabIndex=-1;});all[j].tabIndex=0;all[j].focus();}
+/* JS tilt fallback when CSS scroll-driven animations are missing: rAF, transform only, cached geometry */
+var SDA=window.CSS&&CSS.supports&&CSS.supports('animation-timeline','view()');
+function shelfTilt(sh){if(SDA||RM.matches)return;var bks=[].slice.call(sh.querySelectorAll('.sp')),geo=bks.map(function(b){var p=b.parentNode;return p.offsetLeft+p.parentNode.parentNode.offsetLeft+p.offsetWidth/2;}),raf=0;
+  function upd(){raf=0;var c=sh.scrollLeft+sh.clientWidth/2,w=sh.clientWidth/2;
+    bks.forEach(function(b,i){var d=(geo[i]-c)/w;if(d<-1.3||d>1.3)return;d=Math.max(-1,Math.min(1,d));
+      b.style.transform='perspective(600px) rotateY('+(-d*32).toFixed(1)+'deg) translateY('+(-(1-Math.abs(d))*5).toFixed(1)+'px) scale('+(0.94+(1-Math.abs(d))*0.1).toFixed(3)+')';});}
+  sh.addEventListener('scroll',function(){if(!raf)raf=requestAnimationFrame(upd);},{passive:true});upd();}
+function initArchive(){var sh=$('#shelf');if(!sh)return;
+  if(ARCH.x!=null)sh.scrollLeft=ARCH.x;else{var nb=sh.querySelector('[data-book="'+M.days[0].id+'"]');nb=nb&&nb.parentNode;if(nb&&ARCH.mo===months().slice(-1)[0])sh.scrollLeft=nb.offsetLeft+nb.offsetWidth/2-sh.clientWidth/2;else shelfTo(ARCH.mo,false);}
+  shelfTilt(sh);
+  var cal=$('.cal-vp'),x0=null,y0=0;
+  cal.addEventListener('touchstart',function(e){var t=e.touches[0];x0=t.clientX;y0=t.clientY;},{passive:true});
+  cal.addEventListener('touchend',function(e){if(x0==null)return;var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;
+    if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy)*1.4)calGo(dx<0?1:-1);},{passive:true});}
+/* book open: the spine pulls out, the rest of the page swipes away, the book grows to the page (FLIP, transform/opacity),
+   then the day's Today view is written underneath and the book fades off it. ~400 ms. */
+var flying=null;
+function openBook(a){var id=a.dataset.book,sh=$('#shelf');if(sh){ARCH.x=sh.scrollLeft;ARCH.y=scrollY;}
+  if(RM.matches||!a.animate||flying){location.hash='#/'+id;return;}
+  var r=a.getBoundingClientRect(),vw=innerWidth,vh=innerHeight,cs=getComputedStyle(a.parentNode);
+  var fly=document.createElement('div');fly.className='bookfly';fly.setAttribute('aria-hidden','true');
+  fly.style.cssText='--hue:'+cs.getPropertyValue('--hue')+';--lt:'+cs.getPropertyValue('--lt')+';width:'+vw+'px;height:'+vh+'px';fly.innerHTML='<i></i>';document.body.appendChild(fly);
+  a.style.visibility='hidden';
+  var me=a.parentNode,cx=r.left+r.width/2;
+  sh.querySelectorAll('.bk').forEach(function(b){if(b===me)return;var br=b.getBoundingClientRect();if(br.right<-40||br.left>vw+40)return;
+    var s=(br.left+br.width/2)<cx?-1:1;b.animate([{transform:'none',opacity:1},{transform:'translateX('+(s*90)+'px) rotate('+(s*4)+'deg)',opacity:0}],{duration:260,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'});});
+  APP.querySelectorAll('[data-st]:not(.lib),.lib>.sec').forEach(function(el){var er=el.getBoundingClientRect();if(er.bottom<0||er.top>vh)return;
+    el.animate([{transform:'none',opacity:1},{transform:'translateY(-14px)',opacity:0}],{duration:220,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'});});
+  var sx=r.width/vw,sy=r.height/vh,t0='translate('+r.left+'px,'+r.top+'px) scale('+sx+','+sy+')',t1='translate('+r.left+'px,'+(r.top-18)+'px) scale('+sx*1.12+','+sy*1.06+')';
+  var an=fly.animate([{transform:t0,offset:0},{transform:t1,offset:.28,easing:'cubic-bezier(.3,0,.2,1)'},{transform:'translate(0,0) scale(1,1)',offset:1}],{duration:420,easing:'cubic-bezier(.2,0,0,1)',fill:'forwards'});
+  fly.firstChild.animate([{opacity:0,offset:0},{opacity:0,offset:.45},{opacity:1,offset:1}],{duration:420,fill:'forwards'});
+  flying={el:fly,id:id};
+  an.finished.then(function(){location.hash='#/'+id;},function(){location.hash='#/'+id;});}
+function landBook(){var f=flying;if(!f)return;flying=null;var el=f.el;
+  var a=el.animate([{opacity:1},{opacity:0}],{duration:180,easing:'cubic-bezier(0,0,.2,1)',fill:'forwards'});a.finished.then(function(){el.remove();},function(){el.remove();});}
 function foot(){var g=M.generated?new Date(M.generated):null;
   return '<footer class="foot">Filed by NBFC Guru, 7:00 AM IST. Every figure links to the source its report used; anything a report did not state is shown as missing. Muthoot Finance appears only as a listed peer, never as MFL.'+
     (g&&!isNaN(g)?'<br>Data built '+g.toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})+' IST':'')+' · source: '+esc(M.source||'')+(navigator.onLine===false?' · offline copy':'')+'</footer>';}
@@ -483,6 +590,7 @@ function warm(day){var ric=window.requestIdleCallback||function(f){return setTim
 var seq=0;
 function route(){
   var r=parse(),pv=S.view,pd=S.day,pk=S.key,my=++seq;
+  if(pv==='archive'&&r.view!=='archive'&&!flying){var sh0=$('#shelf');if(sh0){ARCH.x=sh0.scrollLeft;ARCH.y=scrollY;}}
   /* old content stays on screen until the new view is built */
   return getDay(r.day).then(function(day){
     if(my!==seq)return;
@@ -497,13 +605,15 @@ function route(){
       document.querySelectorAll('#tabbar a').forEach(function(a){var t=a.dataset.tab;
         a.href=t==='archive'?'#/archive':t==='today'?'#/'+day.id:'#/'+day.id+'/'+t;
         if(t===S.view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
-      if(changed&&(pv!==S.view||pd!==S.day)){window.scrollTo(0,0);var hd=$('h1');if(hd){hd.setAttribute('tabindex','-1');hd.focus({preventScroll:true});}}
+      if(changed&&(pv!==S.view||pd!==S.day)){window.scrollTo(0,S.view==='archive'?ARCH.y||0:0);var hd=$('h1');if(hd){hd.setAttribute('tabindex','-1');hd.focus({preventScroll:true});}}
+      if(S.view==='archive')initArchive();
+      chromeBar(day);
       syncTabInd(!first);syncSegInd(segFrom);fit(true);
       var pc=$('.pill[aria-current=true]'),pl=pc&&pc.parentNode;
       if(pl&&pl.scrollTo)pl.scrollTo({left:Math.max(0,pc.offsetLeft-(pl.clientWidth-pc.offsetWidth)/2),behavior:first||RM.matches?'auto':'smooth'});
       cascade(APP,first);}
-    if(first||!changed||RM.matches||!APP.animate){
-      var wasFirst=first;apply();if(first)riseTabbar();first=false;prefetch(day.id);if(wasFirst)warm(day);return;}
+    if(first||!changed||RM.matches||!APP.animate||flying){
+      var wasFirst=first;apply();landBook();if(first)riseTabbar();first=false;prefetch(day.id);if(wasFirst)warm(day);return;}
     /* sequential swap, never a crossfade: old content leaves (opacity 0, -4px, ~100 ms), then the new view
        is written and rises in. Header, date chips and (Read -> Read) the desk tabs stay put. */
     var keepSeg=pv==='read'&&S.view==='read';
@@ -527,12 +637,19 @@ function swapOut(keepSeg){
     return el.animate([{opacity:o,transform:'none'},{opacity:0,transform:'translateY(-4px)'}],{duration:100,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'});});
   return Promise.all(anims.map(function(x){return x.finished.catch(function(){});}));}
 APP.addEventListener('click',function(e){
+  var bk=e.target.closest('a[data-book]');if(bk&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey){e.preventDefault();openBook(bk);return;}
   var t=e.target.closest('button,a[data-jump]');if(!t)return;
-  if(t.id==='themeBtn'){themeReveal(t,{auto:'light',light:'dark',dark:'auto'}[theme()]);}
+  if(t.dataset.cal){calGo(+t.dataset.cal);return;}
+  if(t.id==='themeBtn'){themeReveal(t,TNEXT[theme()]);}
   else if(t.id==='installBtn'&&installEvt){installEvt.prompt();installEvt.userChoice.finally(function(){installEvt=null;t.hidden=true;});}
   else if(t.id==='audioBtn'){toggleAudio(S.day,t);}
   else if(t.dataset.jump){e.preventDefault();var el=document.getElementById(t.dataset.jump);if(el)el.scrollIntoView({behavior:RM.matches?'auto':'smooth',block:'start'});}
 });
+APP.addEventListener('keydown',calKey);
+/* ticker: hold still while a finger is on it */
+var holdT;APP.addEventListener('touchstart',function(e){var t=e.target.closest('.tick');if(t){clearTimeout(holdT);t.classList.add('hold');}},{passive:true});
+APP.addEventListener('touchend',function(e){var t=e.target.closest('.tick');if(t){clearTimeout(holdT);holdT=setTimeout(function(){t.classList.remove('hold');},1600);}},{passive:true});
+document.getElementById('cbar').addEventListener('click',function(e){var b=e.target.closest('#cbTheme');if(b)themeReveal(b,TNEXT[theme()]);});
 window.addEventListener('hashchange',function(){if(speaking){speechSynthesis.cancel();speaking=false;}route();});
 window.addEventListener('online',function(){toast('Back online');});
 window.addEventListener('offline',function(){toast('Offline · showing the last saved edition');});
@@ -541,6 +658,34 @@ loadData().then(route).catch(function(err){
   APP.setAttribute('aria-busy','false');
   APP.innerHTML='<div class="g card empty" style="margin-top:60px"><h2>Could not load the brief</h2><p>'+(navigator.onLine===false?'You are offline and no edition is saved on this device yet.':'The data file did not load. Try again in a minute.')+'</p><a class="cta press" href="">Retry</a></div>';
   console.error(err);});
+/* ---------------- compact bar, aurora, ticker ---------------- */
+var CB=document.getElementById('cbar'),AUR=document.getElementById('aur'),cbH1=null,hdEnd=220,cbOn=null,cbRaf=0,aurOff=false;
+var TTL={today:'Today\u2019s Brief',read:'Read',markets:'Markets',archive:'Archive'};
+function chromeBar(day){
+  var it=item(day,'nifty'),mk='';
+  if(it&&it.value){var d=dirOf(it);mk=' \u00b7 <span class="cb-m">Nifty <span class="num">'+esc(it.value)+'</span>'+(hasChg(it)?' <span class="num '+(d||'')+'">'+esc(pct(it.change))+'</span>':'')+'</span>';}
+  document.getElementById('cbT').innerHTML=esc(S.view==='archive'?'Archive':TTL[S.view])+'<span> \u00b7 '+esc(S.view==='archive'?M.days.length+' editions':shortDay(day.id))+'</span>';
+  document.getElementById('cbS').innerHTML='<span class="st-dot '+(filedN(day)>=dueN(day)?'ok':live(day)?'wait':'miss')+'" aria-hidden="true"></span>'+esc(status(day))+mk;
+  syncCbTheme();measureHd();
+  var tk=$('.tick .tk-list');if(tk){var w=tk.offsetWidth;tk.parentNode.style.setProperty('--tkd',Math.max(20,Math.round(w/38))+'s');obs(tk.closest('.tick'));}}
+function measureHd(){cbH1=$('.hd h1');var hd=$('.hd');hdEnd=hd?hd.offsetTop+hd.offsetHeight:220;cbOn=null;cbUpd();}
+function cbUpd(){cbRaf=0;var y=window.scrollY,p=Math.min(1,Math.max(0,y/Math.max(1,hdEnd-24))),q=Math.min(1,Math.max(0,(y-(hdEnd-110))/80));
+  if(RM.matches)q=q>.5?1:0;
+  if(cbH1&&!RM.matches){cbH1.style.transform=p?'translateY('+(y*.32).toFixed(1)+'px) scale('+(1-.22*p).toFixed(3)+')':'';cbH1.style.opacity=p?Math.max(0,1-p*1.15).toFixed(3):'';}
+  CB.style.opacity=q;CB.style.transform=q<1?'translateY('+((q-1)*12).toFixed(1)+'px) scale('+(.97+.03*q).toFixed(3)+')':'';
+  CB.style.visibility=q?'visible':'hidden';AUR.style.opacity=(1-p).toFixed(3);
+  var on=q>.5;if(on!==cbOn){cbOn=on;CB.inert=!on;CB.classList.toggle('on',on);}
+  var off=p>=1;if(off!==aurOff){aurOff=off;AUR.classList.toggle('off',off);}}
+addEventListener('scroll',function(){if(!cbRaf)cbRaf=requestAnimationFrame(cbUpd);},{passive:true});
+addEventListener('resize',function(){measureHd();});
+/* off-screen: pause the ticker (saves GPU on long reads) */
+var IO=window.IntersectionObserver?new IntersectionObserver(function(es){es.forEach(function(e){e.target.classList.toggle('off',!e.isIntersecting);});}):null;
+function obs(el){if(IO&&el)IO.observe(el);}
+/* edge refraction (SVG displacement inside backdrop-filter) only where Chromium renders it and the device has headroom */
+(function(){var de=document.documentElement,q=location.search;
+  if(/[?&]glass=flat/.test(q))return;
+  var okc=!!window.chrome&&window.CSS&&CSS.supports('backdrop-filter','blur(2px) url(#lgx)')&&(navigator.hardwareConcurrency||4)>=6&&!(navigator.deviceMemory&&navigator.deviceMemory<4);
+  if(okc||/[?&]glass=refract/.test(q))de.classList.add('refract');})();
 function tbw(){var t=document.getElementById('tabbar');document.documentElement.style.setProperty('--tbw',(t.offsetWidth+28)+'px');}
 tbw();window.addEventListener('resize',tbw);if(document.fonts)document.fonts.ready.then(function(){tbw();reInd();});
 

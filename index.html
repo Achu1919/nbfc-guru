@@ -24,6 +24,13 @@ try{var t=localStorage.getItem('nbfc-theme');if(t==='light'||t==='dark')document
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<!-- edge refraction for the fixed glass bars (Chromium only, see app.js "refract"); everywhere else plain blur -->
+<svg class="defs" width="0" height="0" aria-hidden="true" focusable="false"><filter id="lgx" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">
+<feImage href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3ClinearGradient id='a'%3E%3Cstop offset='0' stop-color='%23ff8080'/%3E%3Cstop offset='.14' stop-color='%23808080'/%3E%3Cstop offset='.86' stop-color='%23808080'/%3E%3Cstop offset='1' stop-color='%23008080'/%3E%3C/linearGradient%3E%3Crect width='100' height='100' fill='url(%23a)'/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="ma"/>
+<feDisplacementMap in="SourceGraphic" in2="ma" scale="16" xChannelSelector="R" yChannelSelector="G" result="d1"/>
+<feImage href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3ClinearGradient id='b' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%2380ff80'/%3E%3Cstop offset='.3' stop-color='%23808080'/%3E%3Cstop offset='.7' stop-color='%23808080'/%3E%3Cstop offset='1' stop-color='%23800080'/%3E%3C/linearGradient%3E%3Crect width='100' height='100' fill='url(%23b)'/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="mb"/>
+<feDisplacementMap in="d1" in2="mb" scale="12" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
+<div class="aur" id="aur" aria-hidden="true"><i></i><i></i><i></i></div>
 <main id="main" tabindex="-1">
   <div class="wrap" id="app" aria-busy="true">
     <div class="boot" role="status"><div class="g sk sk-h"></div><div class="g sk sk-c"></div><div class="g sk sk-t"></div><span class="sr">Loading today's brief…</span></div>
@@ -35,6 +42,7 @@ try{var t=localStorage.getItem('nbfc-theme');if(t==='light'||t==='dark')document
   <a href="#/markets" data-tab="markets">Markets</a>
   <a href="#/archive" data-tab="archive">Archive</a>
 </nav>
+<aside class="cbar" id="cbar" aria-label="Page summary" inert><div class="cb-t"><b id="cbT">NBFC Guru</b><span id="cbS"></span></div><button class="ic sm press" id="cbTheme" type="button" aria-label="Theme"></button></aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <noscript><div style="padding:24px;max-width:40em;line-height:1.55">This brief needs JavaScript. Without it you can still read the raw files on this site: the <a href="/regulatory-log.md">regulatory log</a>, the <a href="/KEY-NUMBERS.md">key-numbers guide</a>, and each day's reports at <code>/days/YYYY-MM-DD/01-daily-watch.md</code> and <code>/days/YYYY-MM-DD/02-regulation.md</code>.</div></noscript>
 </body>
